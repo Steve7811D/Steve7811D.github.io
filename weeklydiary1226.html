@@ -32,6 +32,17 @@
 		        <li class="nav-item"><a class="nav-link" href="index.html">主页</a></li>
 		        <li class="nav-item"><a class="nav-link" href="index.html">个人简介</a></li>
 		        <li class="nav-item"><a class="nav-link" href="index.html">博客</a></li> 
+		        <li class="nav-item"><a class="nav-link" href="#"><span id="time"></span>
+</body>
+<script>
+    function mytime(){
+        var a = new Date();
+        var b = a.toLocaleTimeString();
+        var c = a.toLocaleDateString();
+        document.getElementById("time").innerHTML = c+"&nbsp"+b;
+        }
+    setInterval(function() {mytime()},1000);
+</script></a></li> 
 		      </ul>
 		    </div>
 		  </div>
