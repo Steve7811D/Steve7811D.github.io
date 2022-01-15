@@ -94,20 +94,19 @@
             <img src="img/8.jpg" alt="Image" class="img-fluid">
              </div>
 		  
-            <div class="pt-5 mt-5">
-              <h3 class="mb-5" style="font-size: 34px;">1 评论</h3>
-              <ul class="comment-list">
-                <li class="comment">
-                  <div class="vcard bio">
-                    <img src="img/comment-3.jpg" alt="Image placeholder">
-                  </div>
-                  <div class="comment-body">
-                    <h3>Zhanghaobo</h3>
-                    <div class="meta">2022/1/2 16:13</div>
-                    <p>又菜又爱玩/滑稽</p>
-                    <p><a href="#" class="reply">回复</a></p>
-                  </div>
-                </li>
+<div id="gitalk-container"></div>     
+<script type="text/javascript">
+    var gitalk = new Gitalk({
+    // gitalk的主要参数
+      clientID: `4e818df104d39eb4e414`,   //上面获取到的值
+      clientSecret: `d4b6f5f7f8827513ded1e2cace40f2b57966eac3`,//上面获取到的值
+      repo: `comments`,  //您刚才建立仓库的名字
+      owner: 'Steve7811D',   //你的GitHub用户名字
+      admin: ['Steve7811D'],  //你的GitHub用户的名字
+      id: '11', //id不能重复，如果重复就会把其他页面的评论引进来
+        });
+      gitalk.render('gitalk-container');
+</script> 
 		      
           <div class="text" style=" text-align:center;">Steve7811D 2022</div> 
 
