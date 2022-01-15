@@ -88,20 +88,20 @@
            <p>这样的行为一定会造成一定的后果</p>
            <p>希望监管部门以后都能三思而后行</p>
              </div>
-           <div id="gitalk-container"></div>
 
-<script>
-       const gitalk = new Gitalk({
-              clientID: '4e818df104d39eb4e414',
-              clientSecret: 'd4b6f5f7f8827513ded1e2cace40f2b57966eac3',
-              repo: 'Steve7811D.github.io',      // The repository of store comments,
-              owner: 'Steve7811D',
-              admin: ['Steve7811D'],
-              id: steve7811d.github.io,      // Ensure uniqueness and length less than 50
-              distractionFreeMode: false  // Facebook-like distraction free mode
-        })
-        gitalk.render('gitalk-container')
-</script>
+<div id="gitalk-container"></div>     
+<script type="text/javascript">
+    var gitalk = new Gitalk({
+    // gitalk的主要参数
+      clientID: `4e818df104d39eb4e414`,   //上面获取到的值
+      clientSecret: `d4b6f5f7f8827513ded1e2cace40f2b57966eac3`,//上面获取到的值
+      repo: `comments`,  //您刚才建立仓库的名字
+      owner: 'Steve7811D',   //你的GitHub用户名字
+      admin: ['Steve7811D'],  //你的GitHub用户的名字
+      id: '1.2.3', //id不能重复，如果重复就会把其他页面的评论引进来
+        });
+      gitalk.render('gitalk-container');
+</script> 
 
           <div class="text" style=" text-align:center;">Steve7811D 2021</div> 
 
