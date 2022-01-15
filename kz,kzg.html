@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="css/glightbox.min.css">
     <link rel="stylesheet" href="css/aos.css">
     <link rel="stylesheet" href="css/style2.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/4.5.6/css/ionicons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
   </head>
   <body>
 
@@ -77,6 +79,19 @@
              </div>
 
           <div class="text" style=" text-align:center;"> ——2017.11.24摘自《读者》（2017-23）</div> 
+<div id="gitalk-container"></div>     
+<script type="text/javascript">
+    var gitalk = new Gitalk({
+    // gitalk的主要参数
+      clientID: `4e818df104d39eb4e414`,   //上面获取到的值
+      clientSecret: `d4b6f5f7f8827513ded1e2cace40f2b57966eac3`,//上面获取到的值
+      repo: `comments`,  //您刚才建立仓库的名字
+      owner: 'Steve7811D',   //你的GitHub用户名字
+      admin: ['Steve7811D'],  //你的GitHub用户的名字
+      id: 'kz', //id不能重复，如果重复就会把其他页面的评论引进来
+        });
+      gitalk.render('gitalk-container');
+</script> 
 
   <script src="js/bootstrap.bundle.min.js"></script>
   <script src="js/tiny-slider.js"></script>
