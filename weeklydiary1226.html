@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/glightbox.min.css">
     <link rel="stylesheet" href="css/aos.css">
     <link rel="stylesheet" href="css/style2.css">
+    <link rel="stylesheet" href="//cdn.bootcss.com/gitalk/1.5.0/gitalk.min.css">
   </head>
   <body>
 
@@ -111,16 +112,31 @@
             <p>圣诞节收到一些贺卡</p>
             <p>也没啥开心事了</p>
 
+          <script type="text/javascript">
+           var gitalk = new Gitalk({
+           clientID: '4e818df104d39eb4e414', // GitHub Application Client ID
+           clientSecret: 'd4b6f5f7f8827513ded1e2cace40f2b57966eac3', // GitHub Application Client Secret
+            repo: 'comment'      // 存放评论的仓库
+            owner: Steve7811D',          // 仓库的创建者，
+            admin: ['Steve7811D'],        // 如果仓库有多个人可以操作，那么在这里以数组形式写出
+            id: 1226,      // 用于标记评论是哪个页面的，确保唯一，并且长度小于50
+            })
+            gitalk.render('gitalk-container');
+          </script>
+          <div id="gitalk-container"></div>
+
           <div class="text" style=" text-align:center;"><iframe width="430" scrolling="no" height="25" frameborder="0" allowtransparency="true" src="https://i.tianqi.com?c=code&id=1&icon=1&site=12"></iframe></div> 
           <div class="text" style=" text-align:center;">Steve7811D 2021</div> 
 
   <script src="js/bootstrap.bundle.min.js"></script>
+        <script src="//cdn.bootcss.com/gitalk/1.5.0/gitalk.min.js"></script>
   <script src="js/tiny-slider.js"></script>
   <script src="js/glightbox.min.js"></script>
   <script src="js/aos.js"></script>
   <script src="js/typewritter.js"></script>
   <script src="js/slideNav.min.js"></script>
   <script src="js/main.js"></script>
+  <script src="comments.js"></script>
 
     
   </body>
