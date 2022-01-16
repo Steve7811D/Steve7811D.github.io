@@ -9,6 +9,8 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <link href="css/templatemo-xtra-blog.css" rel="stylesheet">
     <link href="img/favicon.ico" rel="shortcut icon">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+    <script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
 <!--
     
 欢迎来到Steve7811D的博客
@@ -669,28 +671,19 @@ https://space.bilibili.com/83468492
                         </div>
                         
                         <!-- 评论 -->
-                        <div>
-                            <h2 class="tm-color-primary tm-post-title">评论区</h2>
-                            <hr class="tm-hr-primary tm-mb-45">
-                            <div class="tm-comment tm-mb-45">
-                                <figure class="tm-comment-figure">                                                                           
-                            </div>
-                            <form action="" class="mb-5 tm-comment-form">
-                                <h2 class="tm-color-primary tm-post-title mb-4">评论</h2>
-                                <div class="mb-4">
-                                    <input class="form-control" name="名字" type="text">
-                                </div>
-                                <div class="mb-4">
-                                    <input class="form-control" name="邮箱" type="text">
-                                </div>
-                                <div class="mb-4">
-                                    <textarea class="form-control" name="信息" rows="6"></textarea>
-                                </div>
-                                <div class="text-right">
-                                    <button class="tm-btn tm-btn-primary tm-btn-small">发送</button>                        
-                                </div>                                
-                            </form>                          
-                        </div>
+<div id="gitalk-container"></div>     
+<script type="text/javascript">
+    var gitalk = new Gitalk({
+    // gitalk的主要参数
+      clientID: `4e818df104d39eb4e414`,   //上面获取到的值
+      clientSecret: `d4b6f5f7f8827513ded1e2cace40f2b57966eac3`,//上面获取到的值
+      repo: `comments`,  //您刚才建立仓库的名字
+      owner: 'Steve7811D',   //你的GitHub用户名字
+      admin: ['Steve7811D'],  //你的GitHub用户的名字
+      id: '612', //id不能重复，如果重复就会把其他页面的评论引进来
+        });
+      gitalk.render('gitalk-container');
+</script> 
                     </div>
                 </div>
                 <aside class="col-lg-4 tm-aside-col">
