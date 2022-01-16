@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh">
+  <head>
+    <title>Steve7811D的博客</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="img/favicon.ico" rel="shortcut icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/4.5.6/css/ionicons.min.css">
+    <link rel="stylesheet" href="css/animate.css">
+    <link rel="stylesheet" href="css/flaticon.css">
+    <link rel="stylesheet" href="css/tiny-slider.css">
+    <link rel="stylesheet" href="css/glightbox.min.css">
+    <link rel="stylesheet" href="css/aos.css">
+    <link rel="stylesheet" href="css/style2.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
+    <script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+  </head>
+  <body>
+
+    <nav class="navbar navbar-expand-lg fixed-top ftco-navbar-light" id="navbar">
+      <div class="container">
+        <a class="navbar-brand align-items-center" href="index.html">
+          Steve7811D的博客
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="fa fa-bars"></span>菜单
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+		        <li class="nav-item"><a class="nav-link" href="index.html">主页</a></li>
+		        <li class="nav-item"><a class="nav-link" href="index.html">个人简介</a></li>
+		        <li class="nav-item"><a class="nav-link" href="index.html">博客</a></li> 
+		        <li class="nav-item"><a class="nav-link" href="#"><span id="time"></span>
+<script>
+    function mytime(){
+        var a = new Date();
+        var b = a.toLocaleTimeString();
+        var c = a.toLocaleDateString();
+        document.getElementById("time").innerHTML = c+"&nbsp"+b;
+        }
+    setInterval(function() {mytime()},1000);
+</script></a></li> 
+		      </ul>
+		    </div>
+		  </div>
+		</nav>
+
+    <section class="hero-wrap hero-wrap-2" style="background-image: url('img/bg.jpg');">
+      <div class="overlay"></div>
+      <div class="container">
+        <div class="row no-gutters slider-text align-items-center justify-content-center">
+          <div class="col-md-9 pt-5 mt-5 text-center">
+            <p class="breadcrumbs"><span class="me-2"><a href="index.html">主页<i class="fa fa-chevron-right"></i></a></span> <span class="me-2"><a href="index.html">博客<i class="fa fa-chevron-right"></i></a></span> <span>2022年1月16日<i class="fa fa-chevron-right"></i></span></p>
+            <h1 class="mb-0 bread">如何给自己的博客添加评论/天气预报/显示时间</h1>
+           </div>
+    </section>
+
+    <section class="ftco-section">
+      <div class="container">
+        <div class="row g-lg-5">
+          <div class="col-lg-12 blog-single">
+            <h2 class="mb-3">大家好啊</h2>
+                         <audio controls="controls">
+                         <source src="audio/Whirling-In-Rags.mp3" type="audio/mp3" />
+                          Your browser does not support this audio format.
+                         </audio>
+            <h3 class="mb-3">1.Gitalk评论插件</h3>
+            <p>半年前的一个晚上我偶然看到了<a rel="nofollow" target="_parent" href="https://mabbs.github.io" class="tm-external-link">Mayx的博客</a></p>
+            <p>其中有一个文章吸引住了我</p>
+            <img src="img/16.jpg" alt="Image" class="img-fluid">
+            <p>下面的评论插件立刻吸引住了我，因为我想搞个评论很久的</p>
+            <p>于是我立刻上Github搜索Gitalk</p>
+            <p>好像很简单啊</p>
+            <p>然后我自己试了试，不行</p>
+            <p>然后我问了问Mayx，他把原文链接发给了我，我没看明白</p>
+            <p>就这么过了半年，我又放假了，昨天晚上我又想试试Gitalk了</p>
+            <p>没想到这一次，成了！</p>
+            <p>下面我就告诉你们怎么来搞</p>
+            <p>1.去申请一个<a rel="nofollow" target="_parent" href="hhttps://github.com/settings/applications/new" class="tm-external-link">GitHub OAuth application</a>，来让Gitalk有权限操作github上的仓库</p>
+            <p>如图</p>
+            <img src="img/comments.jpg" alt="Image" class="img-fluid">
+            <p>完成后会有两个东西，一个叫ClientID，另一个叫ClientSecret，这两个要记着，一会要用</p>
+            <h2 class="mb-3">引入</h2>
+            <p>在head里加入</p>
+            <p>&#60link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css"&#62</p>
+            <p>&#60script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"&#62&#60/script&#62</p>
+            <h3 class="mb-3">或</h3>
+            <p>&#60link rel="stylesheet" href="https://unpkg.com/gitalk/dist/gitalk.css"&#62</p>
+            <p>&#60script src="https://unpkg.com/gitalk/dist/gitalk.min.js"&#62&#60/script&#62</p>
+            <p>然后在你想要显示评论插件位置的地方添加一个容器</p>
+            <p>&#60div id="gitalk-container"&#62&#60/div&#62</p>
+            <p>下面写上</p>
+            <p>&#60script type="text/javascript"&#62 </p>
+            <p>var gitalk = new Gitalk({ </p>
+            <p>clientID: `clientID`,   //上面获取到的值 </p>
+            <p>clientSecret: `clientsecret`,//上面获取到的值 </p>
+            <p> repo: `repositories`,  //您刚才建立仓库的名字 </p>
+            <p>owner: 'name',   //你的GitHub用户名字 </p>
+            <p>admin: ['name'],  //你的GitHub用户的名字 </p>
+            <p> id: 'id', //,每个页面的ID不能一样如果重复就会把其他页面的评论引进来,每个页面的ID不能一样</p>
+            <p> }); </p>
+            <p>gitalk.render('gitalk-container'); </p>
+            <p></script> </p>
+            <p>这样子你的评论就会显示出来啦，也不算很难吧</p>
+            <h3 class="mb-3">2.让你的网页里实时显示时间</h3>
+            <p>这个相对来说就比较简单了</p>
+            <p>代码如下</p>
+            <p>&#60script&#62</p>
+            <p>function mytime(){</p>
+            <p>var a = new Date();</p>
+            <p>var b = a.toLocaleTimeString();</p>
+            <p>var c = a.toLocaleDateString();</p>
+            <p>document.getElementById("time").innerHTML = c+"&nbsp"+b;</p>
+            <p> }</p>
+            <p>setInterval(function() {mytime()},1000);</p>
+            <p>&#60/script&#62</p>
+            <p>效果就像菜单最左边一样</p>
+            <h3 class="mb-3">3.天气预报</h3>
+            <p>这个要用到<a rel="nofollow" target="_parent" href="https://www.tianqi.com/plugin/list.html" class="tm-external-link">天气</a>这个网站</p>
+            <p>找到你想要的样式之后直接复制粘贴到你想要的地方就可以了</p>
+            <p>效果如下</p>
+             </div>
+            <div class="text" style=" text-align:center;"><iframe width="430" scrolling="no" height="25" frameborder="0" allowtransparency="true" src="https://i.tianqi.com?c=code&id=1&icon=1&site=12"></iframe></div> 
+            <div class="text" style=" text-align:center;"><img src="img/16.gif" alt="Image" class="img-fluid"></div> 
+<div id="gitalk-container"></div>     
+<script type="text/javascript">
+    var gitalk = new Gitalk({
+    // gitalk的主要参数
+      clientID: `4e818df104d39eb4e414`,   //上面获取到的值
+      clientSecret: `d4b6f5f7f8827513ded1e2cace40f2b57966eac3`,//上面获取到的值
+      repo: `comments`,  //您刚才建立仓库的名字
+      owner: 'Steve7811D',   //你的GitHub用户名字
+      admin: ['Steve7811D'],  //你的GitHub用户的名字
+      id: '116', //id不能重复，如果重复就会把其他页面的评论引进来
+        });
+      gitalk.render('gitalk-container');
+</script> 
+		      
+          <div class="text" style=" text-align:center;">Steve7811D 2022</div> 
+		  
+  <script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+  <script src="js/bootstrap.bundle.min.js"></script>
+  <script src="js/tiny-slider.js"></script>
+  <script src="js/glightbox.min.js"></script>
+  <script src="js/aos.js"></script>
+  <script src="js/typewritter.js"></script>
+  <script src="js/slideNav.min.js"></script>
+  <script src="js/main.js"></script>
+
+    
+  </body>
+</html>
