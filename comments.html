@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
     <script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+    <script src="https://blog.hlzyw.cn/style/js/jquery-1.8.3.min.js"></script>
   </head>
   <body>
 
@@ -123,6 +124,53 @@
             <p>效果如下</p>
              </div>
             <div class="text" style=" text-align:center;"><iframe width="430" scrolling="no" height="25" frameborder="0" allowtransparency="true" src="https://i.tianqi.com?c=code&id=1&icon=1&site=12"></iframe></div> 
+<script type="text/javascript">
+     /* 鼠标点击特效 */
+ 
+     jQuery(function () {
+        $("html").click(function(e) {
+            var a_idx = Math.floor((Math.random() * 26));
+            var a = new Array(
+                "富强", "民主", "文明", "和谐", "自由", "平等", "公正", "法治",
+                 "爱国", "敬业", "诚信", "友善", "Star","评论", "转发", "☭"
+ 
+ 
+ 
+                 );
+            var color1 = Math.floor((Math.random() * 255));
+            var color2 = Math.floor((Math.random() * 255));
+            var color3 = Math.floor((Math.random() * 255));
+ 
+            var $i = $("<span />").text(a[a_idx]);
+            a_idx = (a_idx + 1) % a.length;
+            var x = e.pageX,
+                y = e.pageY;
+            $i.css({　　　　　　
+                "z-index": 9999999999999 ,
+                "top": y - 20,
+                "left": x,
+                "position": "absolute",
+                "font-family":"mmm",
+                "fontSize":Math.floor((Math.random() * 22)+15),
+                "font-weight": "bold",
+                "color": "rgb("+color1+","+color2+","+color3+")",
+                "-webkit-user-select":"none",
+                "-moz-user-select":"none",
+                "-ms-user-select":"none",
+                "user-select":"none",
+            });
+            $("body").append($i);
+            $i.animate({
+                    "top": y - 200,
+                    "opacity": 0
+                },
+                1000,
+                function() {
+                    $i.remove();
+                });
+        });
+    });
+</script>
 <div id="gitalk-container"></div>     
 <script type="text/javascript">
     var gitalk = new Gitalk({
