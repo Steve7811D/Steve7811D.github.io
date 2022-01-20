@@ -7,6 +7,7 @@
     <link href="img/favicon.ico" rel="shortcut icon">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/4.5.6/css/ionicons.min.css">
     <link rel="stylesheet" href="css/animate.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome/css/font-awesome.min.css">
     <link rel="stylesheet" href="css/flaticon.css">
     <link rel="stylesheet" href="css/tiny-slider.css">
     <link rel="stylesheet" href="css/glightbox.min.css">
@@ -184,11 +185,28 @@
         });
       gitalk.render('gitalk-container');
 </script> 
+<style>
+#github svg {
+	transition: all 1s;
+	fill: #222;
+	color: #fff;
+	position: absolute;
+	top: 0;
+	right: 0;
+	border: 0;
+	width: 80px;
+	height: 80px;
+}
+#github:hover svg {
+	width: 160px;
+	height: 160px;
+}
+</style>
 		      
           <div class="text" style=" text-align:center;">Steve7811D 2022</div> 
 		  
   <script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
-  <script src="js/bootstrap.bundle.min.js"></script>
+  <script src="js/autoload.js"></script>  <script src="js/bootstrap.bundle.min.js"></script>
   <script src="js/tiny-slider.js"></script>
   <script src="js/glightbox.min.js"></script>
   <script src="js/aos.js"></script>
