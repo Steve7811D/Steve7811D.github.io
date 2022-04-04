@@ -16,13 +16,9 @@
     <script src="https://blog.hlzyw.cn/style/js/jquery-1.8.3.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.css">
     <script src="https://cdn.jsdelivr.net/npm/gitalk@1/dist/gitalk.min.js"></script>
+    <link rel="stylesheet" href="css/naranja.min.css">
   </head>
   <body>
-<script>
-function open() {
-  alert("出于学习，本网站将停止更新一段时间");
-}
-</script>
     <nav class="navbar navbar-expand-lg fixed-top ftco-navbar-light" id="navbar">
 		  <div class="container">
 		    <a class="navbar-brand align-items-center" href="index.html">
@@ -33,6 +29,7 @@ function open() {
 		    </button>
 		    <div class="collapse navbar-collapse" id="navbarSupportedContent">
 		      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+		        <li class="nav-item"  onclick="narn('log')"><a class="nav-link">公告</a></li>
 		        <li class="nav-item"><a class="nav-link" href="#home">主页</a></li>
 		        <li class="nav-item"><a class="nav-link" href="#about">个人简介</a></li>
 		        <li class="nav-item"><a class="nav-link" href="#blog">博客</a></li> 
@@ -281,6 +278,30 @@ function open() {
         });
     });
 </script>
+	<script type="text/javascript" src="js/naranja.js"></script>
+	<script type="text/javascript">
+		function narn (type) {
+		    naranja()[type]({
+		      title: '公告',
+		      text: '因为学习原因，此博客将暂停更新一段时间',
+		      timeout: 'keep',
+		      buttons: [{
+		        text: '确定',
+		        click: function (e) {
+		          naranja().success({
+		            title: '好的',
+		            text: '通知被接受'
+		          })
+		        }
+		      },{
+		        text: '关闭',
+		        click: function (e) {
+		          e.closeNotification()
+		        }
+		      }]
+		    })
+		  }
+	</script>
 <div class="text" data-aos="fade-up" data-aos-duration="1000">
 <style>
 #github svg {
