@@ -10091,7 +10091,7 @@ textarea.form-control {
   border-right: 3px solid;
   border-top: 3px solid;
   border-color: rgba(255, 255, 255, .5);
-  border-radius: 1px;
+  border-radius: 0px;
   box-sizing: unset;
   height: 25px;
   width: 25px;
