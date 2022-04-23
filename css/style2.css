@@ -10077,3 +10077,35 @@ textarea.form-control {
         .comment-list li .comment-body .reply:hover {
           color: #fff;
           background: black; }
+
+#scrollDown {
+  position: relative;
+  bottom: 100px;
+  width: 100%
+}
+
+#scrollDownIcon {
+  position: absolute;
+  bottom: 25px;
+  left: calc(50% - 10px);
+  border-right: 3px solid;
+  border-top: 3px solid;
+  border-color: rgba(255, 255, 255, .5);
+  border-radius: 1px;
+  box-sizing: unset;
+  height: 25px;
+  width: 25px;
+  -webkit-transform: rotate(135deg);
+  transform: rotate(135deg);
+  cursor: pointer;
+  transition: .25s;
+  animation: twinkle 2s 2s
+}
+
+#scrollDownIcon:hover {
+  border-color: #0dcaf0
+}
+
+#scrollDownIcon:active {
+  border-color: rgba(255, 255, 255, .35);
+}
