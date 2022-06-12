@@ -700,19 +700,22 @@ https://space.bilibili.com/83468492
                         </div>
                         
                         <!-- 评论 -->
-<div id="gitalk-container"></div>     
+<div id="lv-container" data-id="city" data-uid="MTAyMC81NjU5NC8zMzA1Nw==">
 <script type="text/javascript">
-    var gitalk = new Gitalk({
-    // gitalk的主要参数
-      clientID: `4e818df104d39eb4e414`,   //上面获取到的值
-      clientSecret: `d4b6f5f7f8827513ded1e2cace40f2b57966eac3`,//上面获取到的值
-      repo: `Steve7811D.github.io`,  //您刚才建立仓库的名字
-      owner: 'Steve7811D',   //你的GitHub用户名字
-      admin: ['Steve7811D'],  //你的GitHub用户的名字
-      id: '612', //id不能重复，如果重复就会把其他页面的评论引进来
-        });
-      gitalk.render('gitalk-container');
-</script> 
+   (function(d, s) {
+       var j, e = d.getElementsByTagName(s)[0];
+
+       if (typeof LivereTower === 'function') { return; }
+
+       j = d.createElement(s);
+       j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+       j.async = true;
+
+       e.parentNode.insertBefore(j, e);
+   })(document, 'script');
+</script>
+<noscript>为正常使用来必力评论功能请激活JavaScript</noscript>
+</div>
                     </div>
                 </div>
                 <aside class="col-lg-4 tm-aside-col">
