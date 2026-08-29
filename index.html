@@ -182,10 +182,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 <input id="jsonFile" type="file" accept=".json,application/json" class="hidden">
 
 <!-- 内联地图数据（避免 file:// 下 fetch 被浏览器拦截导致地点不显示） -->
-<script type="application/json" id="mapdata">
-{
+<script type="application/json" id="mapdata">{
   "version": 4,
-  "image": "campus.png",
+  "image": "campus.jpg",
   "places": [
     {
       "id": 1786847246393,
@@ -743,8 +742,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       "id": 1786848593225,
       "name": "校医院",
       "type": "service",
-      "x": 1860,
-      "y": 285,
+      "x": 1879,
+      "y": 290,
       "note": ""
     },
     {
@@ -1133,7 +1132,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
     },
     {
       "id": 1787251558077,
-      "name": "老北门打印店",
+      "name": "移动/老北门打印店",
       "type": "service",
       "x": 2053,
       "y": 198,
@@ -1209,6 +1208,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       "type": "study",
       "x": 1563,
       "y": 1643,
+      "note": ""
+    },
+    {
+      "id": 1788003694584,
+      "name": "中澳理工学院",
+      "type": "study",
+      "x": 818,
+      "y": 1036,
+      "note": ""
+    },
+    {
+      "id": 1788003717336,
+      "name": "翻译学院",
+      "type": "study",
+      "x": 806,
+      "y": 1135,
       "note": ""
     }
   ],
@@ -3742,6 +3757,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       "id": 1787561870506,
       "x": 985,
       "y": 566
+    },
+    {
+      "id": 1788003955232,
+      "x": 192,
+      "y": 1025
+    },
+    {
+      "id": 1788003958720,
+      "x": 305,
+      "y": 1010
+    },
+    {
+      "id": 1788003959696,
+      "x": 83,
+      "y": 1002
+    },
+    {
+      "id": 1788003982608,
+      "x": 203,
+      "y": 824
+    },
+    {
+      "id": 1788003987176,
+      "x": 197,
+      "y": 941
     }
   ],
   "edges": [
@@ -8046,10 +8086,81 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       "from": 1787561870506,
       "to": 1786804279245,
       "distance": 83
+    },
+    {
+      "id": 1788003965546,
+      "from": 1788003955232,
+      "to": 1788003959696,
+      "distance": 111
+    },
+    {
+      "id": 1788003966922,
+      "from": 1788003959696,
+      "to": 1786848330728,
+      "distance": 163
+    },
+    {
+      "id": 1788003969475,
+      "from": 1788003959696,
+      "to": 1786797906676,
+      "distance": 220
+    },
+    {
+      "id": 1788003972186,
+      "from": 1788003955232,
+      "to": 1788003958720,
+      "distance": 114
+    },
+    {
+      "id": 1788003973579,
+      "from": 1788003958720,
+      "to": 1786901945169,
+      "distance": 75
+    },
+    {
+      "id": 1788003975731,
+      "from": 1788003958720,
+      "to": 1786901953584,
+      "distance": 125
+    },
+    {
+      "id": 1788003977242,
+      "from": 1788003958720,
+      "to": 1786901948273,
+      "distance": 52
+    },
+    {
+      "id": 1788003989898,
+      "from": 1788003982608,
+      "to": 1788003987176,
+      "distance": 117
+    },
+    {
+      "id": 1788003990753,
+      "from": 1788003987176,
+      "to": 1788003955232,
+      "distance": 84
+    },
+    {
+      "id": 1788003992852,
+      "from": 1788003987176,
+      "to": 1786901945169,
+      "distance": 115
+    },
+    {
+      "id": 1788003998626,
+      "from": 1786797921740,
+      "to": 1788003982608,
+      "distance": 85
+    },
+    {
+      "id": 1788003999906,
+      "from": 1788003982608,
+      "to": 1786797923124,
+      "distance": 109
     }
   ]
-}
-</script>
+}</script>
 
 <script>
 const $=id=>document.getElementById(id);
