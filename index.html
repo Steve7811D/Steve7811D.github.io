@@ -182,7 +182,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
 <input id="jsonFile" type="file" accept=".json,application/json" class="hidden">
 
 <!-- 内联地图数据（避免 file:// 下 fetch 被浏览器拦截导致地点不显示） -->
-<script type="application/json" id="mapdata">{
+<script type="application/json" id="mapdata">
+{
   "version": 4,
   "image": "campus.jpg",
   "places": [
@@ -678,7 +679,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       "id": 1786848443043,
       "name": "学生第二食堂",
       "type": "food",
-      "x": 2034,
+      "x": 2043,
       "y": 445,
       "note": ""
     },
@@ -1038,8 +1039,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       "id": 1786903216880,
       "name": "南操场公共厕所",
       "type": "other",
-      "x": 2084,
-      "y": 1407,
+      "x": 2093,
+      "y": 1416,
       "note": ""
     },
     {
@@ -1240,6 +1241,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       "type": "study",
       "x": 1469,
       "y": 1505,
+      "note": ""
+    },
+    {
+      "id": 1788022193381,
+      "name": "二餐超市",
+      "type": "service",
+      "x": 1998,
+      "y": 465,
       "note": ""
     }
   ],
@@ -3808,6 +3817,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       "id": 1788020247996,
       "x": 1458,
       "y": 1330
+    },
+    {
+      "id": 1788022209486,
+      "x": 2135,
+      "y": 436
+    },
+    {
+      "id": 1788022214189,
+      "x": 2187,
+      "y": 435
+    },
+    {
+      "id": 1788022222406,
+      "x": 2084,
+      "y": 426
     }
   ],
   "edges": [
@@ -8202,9 +8226,46 @@ body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei
       "from": 1788020246461,
       "to": 1788020247996,
       "distance": 77
+    },
+    {
+      "id": 1788022228302,
+      "from": 1788022222406,
+      "to": 1788022209486,
+      "distance": 52
+    },
+    {
+      "id": 1788022229198,
+      "from": 1788022209486,
+      "to": 1788022214189,
+      "distance": 52
+    },
+    {
+      "id": 1788022230111,
+      "from": 1788022214189,
+      "to": 1786820654674,
+      "distance": 38
+    },
+    {
+      "id": 1788022231791,
+      "from": 1788022214189,
+      "to": 1786820654066,
+      "distance": 36
+    },
+    {
+      "id": 1788022234704,
+      "from": 1788022222406,
+      "to": 1786820652050,
+      "distance": 48
+    },
+    {
+      "id": 1788022236463,
+      "from": 1788022222406,
+      "to": 1786820649275,
+      "distance": 36
     }
   ]
-}</script>
+}
+</script>
 
 <script>
 const $=id=>document.getElementById(id);
