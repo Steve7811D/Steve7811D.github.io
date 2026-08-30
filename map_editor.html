@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>曲师校园地图编辑器 V4</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Microsoft YaHei",sans-serif;background:#f3f4f6;color:#222}
+#panel{position:fixed;left:0;top:0;bottom:0;width:320px;background:#fff;padding:15px;overflow:auto;z-index:10;border-right:1px solid #ddd}
+h2{margin:0 0 12px;font-size:20px}
+section{border:1px solid #ddd;border-radius:9px;padding:11px;margin:10px 0}
+input,select,button{width:100%;padding:8px;margin:4px 0;border:1px solid #ccc;border-radius:6px;font-size:14px}
+button{cursor:pointer;background:#fafafa}
+button.primary{background:#1677ff;color:white;border-color:#1677ff}
+button.danger{color:#c00;background:#fff5f5;border-color:#ffb3b3}
+.row{display:flex;gap:7px}.row>*{flex:1}
+.small{font-size:12px;color:#777;line-height:1.5}
+#work{margin-left:320px;padding:20px;min-height:100vh;overflow:auto}
+#empty{padding:50px;text-align:center;background:#fff;border:1px dashed #aaa}
+#wrap{position:relative;display:inline-block;background:#ddd;box-shadow:0 2px 12px #999;user-select:none}
+#map{display:block;max-width:none}
+#svg{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+.edge{stroke:#1677ff;stroke-width:5;stroke-linecap:round;opacity:.75;pointer-events:none}
+.edge.selected{stroke:#ff9800;stroke-width:7}
+.mark{position:absolute;transform:translate(-50%,-50%);cursor:pointer;user-select:none;z-index:2}
+.place{width:18px;height:18px;border-radius:50%;background:#e53935;border:2px solid white;box-shadow:0 1px 4px #555}
+.node{width:13px;height:13px;border-radius:50%;background:#1677ff;border:2px solid white;box-shadow:0 1px 4px #555}
+.mark.selected{outline:3px solid #ffd666;outline-offset:2px}
+.label{position:absolute;left:13px;top:-8px;white-space:nowrap;background:white;border:1px solid #ddd;border-radius:4px;padding:2px 5px;font-size:12px;box-shadow:0 1px 3px #999}
+#list{max-height:260px;overflow:auto}
+.item{padding:7px;border-bottom:1px solid #eee;cursor:pointer}
+.item:hover{background:#f5f5f5}
+.modehint{padding:8px;background:#f6f8fa;border-radius:6px;font-size:12px;line-height:1.5}
+</style>
+</head>
+<body>
+
+<aside id="panel">
+<h2>校园地图编辑器 V4</h2>
+
+<section>
+<b>① 选择地图</b>
+<input id="imgFile" type="file" accept="image/*">
+<div id="info" class="small">请选择校园地图 JPG/PNG</div>
+</section>
+
+<section>
+<b>② 编辑模式</b>
+<select id="mode">
+<option value="place">地点</option>
+<option value="node">道路节点</option>
+<option value="edge">连接道路</option>
+<option value="select">选择 / 移动</option>
+</select>
+<div id="hint" class="modehint"></div>
+</section>
+
+<section id="placeForm">
+<b>地点信息</b>
+<input id="name" placeholder="地点名称，例如：图书馆">
+<select id="type">
+<option value="gate">校门</option>
+<option value="dorm">宿舍</option>
+<option value="study">学习</option>
+<option value="food">餐饮</option>
+<option value="service">服务</option>
+<option value="sport">体育</option>
+<option value="other">其他</option>
+</select>
+<input id="note" placeholder="备注（可选）">
+<button id="savePlace" class="primary">添加 / 更新地点</button>
+</section>
+
+<section>
+<b>③ 数据</b>
+<div class="row">
+<button id="import">导入 JSON</button>
+<button id="export" class="primary">导出 JSON</button>
+</div>
+<input id="jsonFile" type="file" accept=".json,application/json" hidden>
+<div class="row">
+<button id="delete" class="danger">删除选中</button>
+<button id="cancel">取消选择</button>
+</div>
+<button id="clear" class="danger">清空全部数据</button>
+</section>
+
+<section>
+<b>④ 地点列表</b>
+<div id="list"></div>
+</section>
+
+<div id="status" class="small">请先选择地图。</div>
+</aside>
+
+<main id="work">
+<div id="empty">请从左侧选择你的校园地图</div>
+<div id="wrap" hidden>
+<img id="map">
+<svg id="svg"></svg>
+<div id="overlay"></div>
+</div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+
+let places=[], nodes=[], edges=[];
+let selected=null, pending=null, edgeStart=null;
+let imageURL=null, ready=false;
+let drag=null;
+
+function msg(t){$("status").textContent=t}
+
+function updateHint(){
+  const m=$("mode").value;
+  const h={
+    place:"地点模式：点击地图放置地点，然后填写名称和类型。已有地点可以直接拖动修改位置。",
+    node:"道路节点模式：点击地图即可添加节点。道路节点不需要名称。已有节点可以拖动。",
+    edge:"连接道路模式：依次点击两个蓝色道路节点，即可建立道路。再次连接会自动忽略重复道路。",
+    select:"选择 / 移动模式：拖动红色地点或蓝色道路节点即可移动。点击对象后可删除。"
+  };
+  $("hint").textContent=h[m];
+  $("placeForm").style.display=(m==="place"||selected?.kind==="place")?"block":"none";
+  if(m==="edge") edgeStart=null;
+  render();
+}
+$("mode").onchange=updateHint;
+
+$("imgFile").onchange=e=>{
+  const f=e.target.files[0];
+  if(!f)return;
+  if(imageURL)URL.revokeObjectURL(imageURL);
+  imageURL=URL.createObjectURL(f);
+  $("map").src=imageURL;
+};
+$("map").onload=()=>{
+  ready=true;
+  $("empty").hidden=true;
+  $("wrap").hidden=false;
+  const w=$("map").naturalWidth,h=$("map").naturalHeight;
+  $("info").textContent=`地图尺寸：${w} × ${h}`;
+  $("wrap").style.width=w+"px";
+  $("wrap").style.height=h+"px";
+  $("svg").setAttribute("width",w);
+  $("svg").setAttribute("height",h);
+  render();
+  msg("地图加载成功。");
+};
+
+$("wrap").addEventListener("click",e=>{
+  if(!ready)return;
+  if(e.target!==$("map")&&e.target!==$("svg")&&e.target!==$("wrap"))return;
+  const r=$("map").getBoundingClientRect();
+  pending={x:Math.round(e.clientX-r.left),y:Math.round(e.clientY-r.top)};
+  const m=$("mode").value;
+  if(m==="place")msg(`已选择坐标 (${pending.x}, ${pending.y})，填写地点信息后点击“添加 / 更新地点”。`);
+  else if(m==="node"){nodes.push({id:Date.now(),x:pending.x,y:pending.y});pending=null;render();msg("已添加道路节点。节点无需名称。")}
+});
+
+function screenPoint(e){
+  const r=$("map").getBoundingClientRect();
+  return {x:Math.round(e.clientX-r.left),y:Math.round(e.clientY-r.top)};
+}
+
+function makeMarker(obj,kind){
+  const el=document.createElement("div");
+  el.className="mark "+kind+(selected===obj?" selected":"");
+  el.style.left=obj.x+"px";el.style.top=obj.y+"px";
+  if(kind==="place"){
+    const lab=document.createElement("span");lab.className="label";lab.textContent=obj.name;el.appendChild(lab);
+  }
+  el.title=kind==="place"?`${obj.name} (${obj.x},${obj.y})`:`道路节点 ${obj.id} (${obj.x},${obj.y})`;
+
+  el.onpointerdown=e=>{
+    e.stopPropagation();
+    selected=obj; obj.kind=kind;
+    if($("mode").value==="edge" && kind==="node"){
+      if(!edgeStart){edgeStart=obj;msg("已选择第一个节点，请再点击一个蓝色节点。");render();return;}
+      if(edgeStart===obj){edgeStart=null;msg("不能连接自己。");render();return;}
+      addEdge(edgeStart,obj);
+      edgeStart=null;render();return;
+    }
+    if($("mode").value==="place"&&kind==="place"){
+      $("name").value=obj.name||"";
+      $("type").value=obj.type||"other";
+      $("note").value=obj.note||"";
+    }
+    startDrag(e,obj);
+  };
+  return el;
+}
+
+function startDrag(e,obj){
+  if($("mode").value==="edge")return;
+  drag={obj,startX:e.clientX,startY:e.clientY,origX:obj.x,origY:obj.y,moved:false};
+  window.addEventListener("pointermove",onDrag);
+  window.addEventListener("pointerup",endDrag,{once:true});
+}
+function onDrag(e){
+  if(!drag)return;
+  const r=$("map").getBoundingClientRect();
+  drag.obj.x=Math.max(0,Math.min($("map").naturalWidth,Math.round(e.clientX-r.left)));
+  drag.obj.y=Math.max(0,Math.min($("map").naturalHeight,Math.round(e.clientY-r.top)));
+  drag.moved=true;render();
+}
+function endDrag(){
+  if(drag){
+    msg(`${drag.obj.kind==="place"?"地点":"道路节点"}位置已更新：(${drag.obj.x}, ${drag.obj.y})`);
+  }
+  drag=null;
+  window.removeEventListener("pointermove",onDrag);
+}
+
+function addEdge(a,b){
+  const exists=edges.some(e=>(e.from===a.id&&e.to===b.id)||(e.from===b.id&&e.to===a.id));
+  if(exists){msg("这两个节点已经连接。");return;}
+  const dx=a.x-b.x,dy=a.y-b.y;
+  edges.push({id:Date.now(),from:a.id,to:b.id,distance:Math.round(Math.sqrt(dx*dx+dy*dy))});
+  msg(`道路已建立：${a.id} ↔ ${b.id}`);
+}
+
+function render(){
+  const o=$("overlay");o.innerHTML="";
+  places.forEach(p=>o.appendChild(makeMarker(p,"place")));
+  nodes.forEach(n=>o.appendChild(makeMarker(n,"node")));
+
+  const svg=$("svg");svg.innerHTML="";
+  edges.forEach(e=>{
+    const a=nodes.find(n=>n.id===e.from),b=nodes.find(n=>n.id===e.to);
+    if(!a||!b)return;
+    const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+    line.setAttribute("x1",a.x);line.setAttribute("y1",a.y);
+    line.setAttribute("x2",b.x);line.setAttribute("y2",b.y);
+    line.setAttribute("class","edge");
+    svg.appendChild(line);
+  });
+
+  const list=$("list");list.innerHTML="";
+  places.forEach(p=>{
+    const d=document.createElement("div");d.className="item";
+    d.innerHTML=`<b>${esc(p.name)}</b><br><span class="small">${esc(p.type||"other")} · (${p.x}, ${p.y})</span>`;
+    d.onclick=()=>selectObject(p,"place");list.appendChild(d);
+  });
+  if(!places.length)list.innerHTML='<span class="small">暂无地点</span>';
+}
+
+function selectObject(o,kind){
+  selected=o;o.kind=kind;
+  $("mode").value="select";
+  if(kind==="place"){
+    $("name").value=o.name||"";
+    $("type").value=o.type||"other";
+    $("note").value=o.note||"";
+    $("placeForm").style.display="block";
+  }
+  render();
+  msg(`已选中：${kind==="place"?o.name:"道路节点 "+o.id}。现在可以拖动、修改或删除。`);
+}
+
+$("savePlace").onclick=()=>{
+  if(!$("name").value.trim())return alert("请输入地点名称");
+  const name=$("name").value.trim();
+  if(selected&&selected.kind==="place"){
+    selected.name=name;selected.type=$("type").value;selected.note=$("note").value.trim();
+    msg("地点信息已更新。");
+  }else{
+    if(!pending)return alert("请先点击地图选择地点位置。");
+    places.push({id:Date.now(),name,type:$("type").value,x:pending.x,y:pending.y,note:$("note").value.trim()});
+    pending=null;msg("地点添加成功。");
+  }
+  selected=null;render();
+};
+
+$("delete").onclick=()=>{
+  if(!selected)return alert("请先选择一个地点或道路节点。");
+  if(selected.kind==="place"){
+    places=places.filter(p=>p!==selected);
+  }else{
+    edges=edges.filter(e=>e.from!==selected.id&&e.to!==selected.id);
+    nodes=nodes.filter(n=>n!==selected);
+  }
+  selected=null;edgeStart=null;render();msg("已删除选中对象。");
+};
+
+$("cancel").onclick=()=>{selected=null;pending=null;edgeStart=null;$("name").value="";$("note").value="";render();msg("已取消选择。")};
+
+$("clear").onclick=()=>{
+  if(confirm("确定清空全部地点、道路节点和道路吗？")){
+    places=[];nodes=[];edges=[];selected=null;edgeStart=null;render();msg("数据已清空。");
+  }
+};
+
+$("import").onclick=()=>$("jsonFile").click();
+$("jsonFile").onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(Array.isArray(d)){places=d;nodes=[];edges=[]}
+      else{places=Array.isArray(d.places)?d.places:[];nodes=Array.isArray(d.nodes)?d.nodes:[];edges=Array.isArray(d.edges)?d.edges:[]}
+      selected=null;pending=null;edgeStart=null;render();
+      msg(`导入成功：地点 ${places.length} 个，道路节点 ${nodes.length} 个，道路 ${edges.length} 条。`);
+    }catch(err){alert("JSON 格式错误："+err.message)}
+  };
+  r.readAsText(f,"utf-8");e.target.value="";
+};
+
+$("export").onclick=()=>{
+  const clean=a=>a.map(x=>{const y={...x};delete y.kind;return y});
+  const data={version:4,image:$("imgFile").files[0]?.name||"campus.jpg",places:clean(places),nodes:clean(nodes),edges:clean(edges)};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="campus_map.json";a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+updateHint();
+</script>
+</body>
+</html>
