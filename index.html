@@ -224,7 +224,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 <script type="application/json" id="mapdata">
 {
   "version": 4,
-  "image": "campus.jpg",
+  "image": "campus.webp",
   "places": [
     {
       "id": 1786847246393,
@@ -8849,9 +8849,9 @@ function autoLoad(){
       .catch(()=>{/* 等手动导入 */});
   }
   const img=new Image();
-  img.onload=()=>{ imgURL='campus.jpg'; $("map").src='campus.jpg'; };
+  img.onload=()=>{ imgURL='campus.webp'; $("map").src='campus.webp'; };
   img.onerror=()=>{ /* 图片加载失败时仍显示画布 */ };
-  img.src='campus.jpg';
+  img.src='campus.webp';
 }
 autoLoad();
 
