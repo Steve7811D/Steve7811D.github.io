@@ -8750,14 +8750,20 @@ $("viewport").addEventListener('wheel',e=>{
   zoomAt(e.clientX-r.left, e.clientY-r.top, scale*(e.deltaY<0?1.15:0.87));
 },{passive:false});
 
-function resetView(){
+function resetView(silent){
   scale=baseScale; rot=0;
   // 复位时让地图居中：地图中心对准视口中心
   const vw=$("viewport").clientWidth, vh=$("viewport").clientHeight;
   tx=vw/2;
   ty=vh/2;
-  // 复位时加过渡动画
   const el=$("transform");
+  if(silent){
+    // 初始化时瞬时定位，不加过渡动画，避免多次 reset 叠加导致打开时闪烁
+    el.classList.remove("animate"); clearTimeout(el._animTm);
+    applyTransform();
+    return;
+  }
+  // 复位时加过渡动画
   el.classList.add("animate");
   applyTransform();
   clearTimeout(el._animTm);
@@ -8786,14 +8792,14 @@ $("map").onload=()=>{
     const fit=Math.min(vw/w, vh/h);
     baseScale=fit*2.2;
     baseScale=Math.max(MIN_SCALE, Math.min(MAX_SCALE, baseScale));
-    resetView();
+    resetView(true);
     $("wrap").hidden=false;
   }
   // 地图就绪后统一渲染（此时 data 可能已加载或稍后加载，renderIfReady 会兜底）
   renderIfReady();
-  // iframe 首次加载时视口尺寸可能尚未定型，多次延迟居中，确保地图不偏左上角
+  // iframe 首次加载时视口尺寸可能尚未定型，多次延迟居中，确保地图不偏左上角（静默定位，不触发过渡动画）
   [100, 300, 600].forEach((ms)=>{
-    setTimeout(()=>{ if(inited) resetView(); }, ms);
+    setTimeout(()=>{ if(inited) resetView(true); }, ms);
   });
 };
 
@@ -9705,6 +9711,8 @@ function zoomByButton(f){
   const startScale=scale, startTx=tx, startTy=ty;
   const targetScale=Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale*f));
   const t0=performance.now(), dur=250;
+  // 移除残留的 animate 类，避免 rAF 每帧 transform 被 CSS .5s 过渡拦截导致“果冻”卡顿
+  const el=$("transform"); el.classList.remove("animate"); clearTimeout(el._animTm);
   function step(now){
     const p=Math.min(1,(now-t0)/dur);
     const e=1-Math.pow(1-p,3);
@@ -9746,6 +9754,8 @@ function resetRotation(){
   const cx=mapCx(), cy=mapCy();
   const startRot=rot;
   const t0=performance.now(), dur=250;
+  // 移除残留的 animate 类，避免 rAF 每帧 transform 被 CSS 过渡拦截导致卡顿
+  const el=$("transform"); el.classList.remove("animate"); clearTimeout(el._animTm);
   function step(now){
     const p=Math.min(1,(now-t0)/dur);
     const e=1-Math.pow(1-p,3);
