@@ -8603,7 +8603,9 @@ function updateLOD(){
 }
 
 // 罗盘：外圈（东南西北位置）随地图旋转，但每个字反向转保持正着（不歪）
+let __compassRot=null; // 缓存上次 compass 的 rot，避免缩放/平移时每帧写相同 transform 导致掉帧
 function updateCompass(){
+  if(rot===__compassRot) return; // rot 没变则跳过（缩放/平移时不写 compass）
   const compass=$("compass");
   if(!compass) return;
   const ring=compass.querySelector(".cp-ring");
@@ -8613,6 +8615,7 @@ function updateCompass(){
   const s=$("compass")?.querySelector(".cp-s"); if(s) s.style.transform=`translateX(-50%) rotate(${-rot}deg)`;
   const e=$("compass")?.querySelector(".cp-e"); if(e) e.style.transform=`translateY(-50%) rotate(${-rot}deg)`;
   const w=$("compass")?.querySelector(".cp-w"); if(w) w.style.transform=`translateY(-50%) rotate(${-rot}deg)`;
+  __compassRot=rot;
 }
 
 // 边界限制已关闭
@@ -8622,8 +8625,10 @@ function clampTransform(){
 
 // 缓存地名标签引用与坐标，避免每次手势都 querySelectorAll（闪烁主因）
 let labelCache=null;
+let __labelRot=null; // 上次已应用到的 rot，缩放/平移时不重复写 160 个 label 的 transform
 function refreshLabelRotation(){
-  if(!data||!readyImg) return;
+  if(rot===__labelRot) return; // rot 没变则跳过（缩放动画 rot 不变，无需每帧重写 label）
+  if(!data||!readyImg){ __labelRot=null; return; }
   if(!labelCache){
     labelCache=Array.from(document.querySelectorAll("#svg .place-label")).map(t=>({
       el:t, x:parseFloat(t.getAttribute("x")), y:parseFloat(t.getAttribute("y"))
@@ -8633,9 +8638,10 @@ function refreshLabelRotation(){
     if(rot) L.el.setAttribute("transform",`rotate(${-rot} ${L.x} ${L.y})`);
     else L.el.removeAttribute("transform");
   }
+  __labelRot=rot;
 }
 // 地名重绘后需重建缓存
-function invalidateLabelCache(){ labelCache=null; }
+function invalidateLabelCache(){ labelCache=null; __labelRot=null; }
 
 function zoomAt(cx,cy,newScale){
   newScale=Math.max(MIN_SCALE,Math.min(MAX_SCALE,newScale));
@@ -9710,25 +9716,36 @@ function toast(msg){
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
 // zoom control +/-
+let __zoomAnimId=0; // 当前缩放动画的 rAF id。非 0 表示正在播放，期间忽略新点击（播放完才接受下一次）
 function zoomByButton(f){
+  // 正在播放动画时忽略本次点击，避免连点叠加导致果冻
+  if(__zoomAnimId) return;
   const v=$("viewport");
   const cx=v.clientWidth/2, cy=v.clientHeight/2;
   const startScale=scale, startTx=tx, startTy=ty;
   const targetScale=Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale*f));
-  const t0=performance.now(), dur=250;
-  // 移除残留的 animate 类，避免 rAF 每帧 transform 被 CSS .5s 过渡拦截导致“果冻”卡顿
   const el=$("transform"); el.classList.remove("animate"); clearTimeout(el._animTm);
-  function step(now){
-    const p=Math.min(1,(now-t0)/dur);
+  // 以帧数为进度（而非墙钟时间）：卡顿/掉帧时动画变慢但会完整播完，不被“时间到”招断
+  const totalFrames=15, frameStep=1/totalFrames;
+  let frame=0;
+  function step(){
+    frame++;
+    const p=Math.min(1, frame*frameStep);
     const e=1-Math.pow(1-p,3);
     const s=startScale+(targetScale-startScale)*e;
     const k=s/startScale;
     tx=cx-k*(cx-startTx); ty=cy-k*(cy-startTy);
     scale=s;
     applyTransform();
-    if(p<1) requestAnimationFrame(step);
+    if(frame<totalFrames) __zoomAnimId=requestAnimationFrame(step);
+    else {
+      scale=targetScale;
+      tx=cx-(targetScale/startScale)*(cx-startTx); ty=cy-(targetScale/startScale)*(cy-startTy);
+      applyTransform();
+      __zoomAnimId=0; // 动画结束，解锁
+    }
   }
-  requestAnimationFrame(step);
+  __zoomAnimId=requestAnimationFrame(step);
 }
 $("zoom-in").onclick=()=>zoomByButton(1.7);
 $("zoom-out").onclick=()=>zoomByButton(1/1.7);
@@ -9752,17 +9769,22 @@ if(_dq.addEventListener){ _dq.addEventListener("change", reposeDisclaimer); }
 reposeDisclaimer();
 
 // compass click -> rotate back to north (rot = 0), keep scale/position
+let __rotAnimId=0; // 回正动画 rAF id，连点时取消旧动画避免叠加
 function resetRotation(){
+  // 正在回正动画时忽略新点击，避免叠加果冻
+  if(__rotAnimId) return;
   const v=$("viewport");
   const sx=v.clientWidth/2, sy=v.clientHeight/2;
   const m=screenToMap(sx, sy);
   const cx=mapCx(), cy=mapCy();
   const startRot=rot;
-  const t0=performance.now(), dur=250;
-  // 移除残留的 animate 类，避免 rAF 每帧 transform 被 CSS 过渡拦截导致卡顿
   const el=$("transform"); el.classList.remove("animate"); clearTimeout(el._animTm);
-  function step(now){
-    const p=Math.min(1,(now-t0)/dur);
+  // 以帧数为进度（而非墙钟时间）：卡顿/掉帧时动画变慢但会完整播完
+  const totalFrames=15, frameStep=1/totalFrames;
+  let frame=0;
+  function step(){
+    frame++;
+    const p=Math.min(1, frame*frameStep);
     const e=1-Math.pow(1-p,3);
     rot=startRot*(1-e);
     const rad=rot*Math.PI/180;
@@ -9772,9 +9794,10 @@ function resetRotation(){
     const rxr=rx*cos-ry*sin, ryr=rx*sin+ry*cos;
     tx=sx-rxr; ty=sy-ryr;
     applyTransform();
-    if(p<1) requestAnimationFrame(step);
+    if(frame<totalFrames) __rotAnimId=requestAnimationFrame(step);
+    else __rotAnimId=0; // 动画结束，解锁
   }
-  requestAnimationFrame(step);
+  __rotAnimId=requestAnimationFrame(step);
 }
 $("compass").addEventListener("click", resetRotation);
 </script>
