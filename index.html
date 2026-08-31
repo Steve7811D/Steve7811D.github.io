@@ -9334,8 +9334,13 @@ function chooseRoute(index,s,e,v){
 }
 
 function drawRoute(path,sn,en,vn){
-  renderBase();
   const svg=$("svg");
+  // 只清除旧路线层，不清空重建整个 SVG（重建 320 个地点元素会造成一次性闪烁）
+  const oldLayer=svg.querySelector("#route-layer");
+  if(oldLayer) svg.removeChild(oldLayer);
+  const layer=document.createElementNS("http://www.w3.org/2000/svg","g");
+  layer.setAttribute("id","route-layer");
+  svg.appendChild(layer);
   const nodes=nodeMap();
   const pts=[[sp.x,sp.y],[sn.x,sn.y]];
   path.forEach(id=>{const n=nodes.get(id);if(n)pts.push([n.x,n.y])});
@@ -9347,31 +9352,31 @@ function drawRoute(path,sn,en,vn){
   const casing=document.createElementNS("http://www.w3.org/2000/svg","polyline");
   casing.setAttribute("points",points);
   casing.setAttribute("class","route-casing");
-  svg.appendChild(casing);
+  layer.appendChild(casing);
   // 中层红色路径
   const poly=document.createElementNS("http://www.w3.org/2000/svg","polyline");
   poly.setAttribute("points",points);
   poly.setAttribute("class","route");
-  svg.appendChild(poly);
+  layer.appendChild(poly);
   // 上层流动箭头条纹（白色虚线，沿路径方向动）
   const arrow=document.createElementNS("http://www.w3.org/2000/svg","polyline");
   arrow.setAttribute("points",points);
   arrow.setAttribute("class","route-arrow");
-  svg.appendChild(arrow);
+  layer.appendChild(arrow);
   [[sp,"#22c55e"],[ep,"#ef4444"]].forEach(([p,c])=>{
     const ci=document.createElementNS("http://www.w3.org/2000/svg","circle");
     ci.setAttribute("cx",p.x);ci.setAttribute("cy",p.y);ci.setAttribute("r",10);
     ci.setAttribute("fill",c);ci.setAttribute("stroke","#fff");ci.setAttribute("stroke-width","3");
-    svg.appendChild(ci);
+    layer.appendChild(ci);
   });
   // 途经点标记（橙色）
   if(vp && vn){
     const ci=document.createElementNS("http://www.w3.org/2000/svg","circle");
     ci.setAttribute("cx",vp.x);ci.setAttribute("cy",vp.y);ci.setAttribute("r",10);
     ci.setAttribute("fill","#f59e0b");ci.setAttribute("stroke","#fff");ci.setAttribute("stroke-width","3");
-    svg.appendChild(ci);
+    layer.appendChild(ci);
   }
-  // 将地名文字提升到最顶层，避免被路线盖住
+  // 将地名文字提升到最顶层，避免被路线盖住（路线在 route-layer 分组内，地点在分组外靠后，重新 append 保证层级）
   bringLabelsToTop();
   focusOnRoute(clean);
 }
