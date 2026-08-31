@@ -19,7 +19,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 
 /* ===== 地图画布（全屏，支持缩放/平移）===== */
 #viewport{position:fixed;inset:0;overflow:hidden;background:#e8ecf3;touch-action:none}
-#transform{position:absolute;left:0;top:0;transform-origin:0 0}
+#transform{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
 #transform.animate{transition:transform .5s cubic-bezier(.22,1,.36,1)}
 #wrap{position:relative;display:inline-block;background:#e2e6ed;box-shadow:0 2px 20px rgba(0,0,0,.25)}
 #map{display:block;max-width:none;width:100%;height:100%;-webkit-user-drag:none}
