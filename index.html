@@ -19,7 +19,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 
 /* ===== 地图画布（全屏，支持缩放/平移）===== */
 #viewport{position:fixed;inset:0;overflow:hidden;background:#e8ecf3;touch-action:none}
-#transform{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+#transform{position:absolute;left:0;top:0;transform-origin:0 0}
 #transform.animate{transition:transform .5s cubic-bezier(.22,1,.36,1)}
 #wrap{position:relative;display:inline-block;background:#e2e6ed;box-shadow:0 2px 20px rgba(0,0,0,.25)}
 #map{display:block;max-width:none;width:100%;height:100%;-webkit-user-drag:none}
@@ -8665,7 +8665,6 @@ let lastDist=0, lastMid={x:0,y:0}, lastAngle=0;
 $("viewport").addEventListener('pointerdown',e=>{
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   $("transform").classList.remove("animate");
-  { const _t=e.target; const _inter=_t&&(_t.closest("input")||_t.closest("button")||_t.closest(".suggest")||_t.closest("#loc-suggest")||_t.closest("#compass")||_t.closest("#zoom-control")); if(!_inter){ try{e.preventDefault()}catch{} try{e.currentTarget.setPointerCapture(e.pointerId)}catch{} } }
   // 点击地图（不在搜索框/联想框内）时，底部导航栏滑回
   const tgt=e.target;
   if(!(tgt&&(tgt.id==='loc-input'||tgt.id==='loc-btn'||tgt.closest('#loc-suggest')))){
