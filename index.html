@@ -8605,6 +8605,11 @@ let gpsPendingFirstFix = false; // 点击定位后，等待首次成功回调做
 const GPS_RECALC_MIN_MS = 3500;
 const GPS_OFF_ROUTE_PX = 60; // 约35米
 
+// ===== 吃豆人导航：记录完整路线坐标，按当前位置把已走过的路线“吃掉” =====
+let navFullPts = null;        // 完整导航路线坐标点数组（[[x,y],...]，按顺序）
+let navLeftPts = null;        // 剩余路线坐标（含当前位置投影点）
+let navOnRoute = false;       // 是否正在导航（吃豆人模式激活）
+
 function gpsMetersPerDegreeLat(){ return 111132.92; }
 function gpsMetersPerDegreeLon(lat){ return 111412.84 * Math.cos(lat*Math.PI/180); }
 function gpsToMap(lat,lon){
@@ -8678,10 +8683,13 @@ function onGPSPosition(pos){
     if(now-gpsLastRecalc>GPS_RECALC_MIN_MS){
       const routeDist=distanceToCurrentRoute(gpsPoint);
       if(routeDist>GPS_OFF_ROUTE_PX || !routeOptions.length){
+        // 偏航：重新计算路线（会重画完整路线，吃豆人从头开始）
         gpsLastRecalc=now;
         calculateFromGPS(false);
       }
     }
+    // 未偏航：吃豆人——按当前位置把走过的路线隐藏
+    updateNavProgress();
   }
 }
 // ===== “我的位置”红色陀螺仪（替换自导航.html样式）：实心红圆 + 尖三角箭头，箭头指向设备朝向 =====
@@ -8707,13 +8715,13 @@ function drawMyPos(px, py){
     accC.setAttribute("pointer-events","none");
     g.appendChild(accC);
   }
-  // 标签（“我的位置”文字，在精度圈之上）
+  // 标签（“我的位置”文字，在精度圈之上；反旋转与其他地名标签统一，绕文字自身锚点）
   const t=document.createElementNS("http://www.w3.org/2000/svg","text");
+  t.setAttribute("class","my-pos-label");
+  t.setAttribute("data-lx",x);t.setAttribute("data-ly",y-18);
   t.setAttribute("x",x);t.setAttribute("y",y-18);t.setAttribute("text-anchor","middle");t.setAttribute("dominant-baseline","middle");
   t.setAttribute("font-size","14");t.setAttribute("font-weight","bold");t.setAttribute("fill","#e53935");t.setAttribute("stroke","#fff");t.setAttribute("stroke-width",4);t.setAttribute("paint-order","stroke");
   t.textContent="我的位置";
-  const r=typeof rot==='number'?rot:0;
-  t.setAttribute("transform","rotate("+(-r)+" "+x+" "+y+")");
   g.appendChild(t);
   // 外凸尖三角（默认朝上=北）
   const arrow=document.createElementNS("http://www.w3.org/2000/svg","path");
@@ -8736,6 +8744,7 @@ function drawMyPos(px, py){
   white.setAttribute("fill","#fff");white.setAttribute("pointer-events","none");
   g.appendChild(white);
   svg.appendChild(g);
+  refreshLabelRotation();
   updateHeadingArrow();
 }
 // 监听设备朝向（罗盘）
@@ -8766,17 +8775,53 @@ function renderGpsMarker(){
   drawMyPos();
 }
 function distanceToCurrentRoute(p){
-  if(!routeOptions.length||selectedRouteIndex<0||!data)return Infinity;
-  const r=routeOptions[selectedRouteIndex]; const nm=nodeMap(); let best=Infinity;
-  const pts=[];
-  if(curS) pts.push([curS.x,curS.y]);
-  for(const id of r.path){const n=nm.get(id);if(n)pts.push([n.x,n.y]);}
-  if(curE) pts.push([curE.x,curE.y]);
+  if(!data)return Infinity;
+  // 优先用吃豆人导航保存的完整路线坐标（已有正确的 [x,y]）
+  let pts=navFullPts;
+  if(!pts || !pts.length){
+    if(!routeOptions.length||selectedRouteIndex<0)return Infinity;
+    const r=routeOptions[selectedRouteIndex]; const nm=nodeMap();
+    pts=[];
+    if(curS&&curS.node) pts.push([curS.node.x,curS.node.y]);
+    for(const id of r.path){const n=nm.get(id);if(n)pts.push([n.x,n.y]);}
+    if(curE&&curE.node) pts.push([curE.node.x,curE.node.y]);
+  }
+  if(pts.length<2) return Infinity;
+  let best=Infinity;
   for(let i=0;i<pts.length-1;i++){
     const q=projectPointToSegment(p.x,p.y,pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
     best=Math.min(best,Math.hypot(p.x-q.x,p.y-q.y));
   }
   return best;
+}
+// 吃豆人：根据当前位置把已走过的路线“吃掉”，只保留剩余路线（从当前位置投影点开始）
+function updateNavProgress(){
+  if(!navOnRoute || !navFullPts || navFullPts.length<2 || !gpsPoint || !data || !readyImg) return;
+  const P=gpsPoint;
+  // 找当前位置在完整路线折线上的最近投影点及其所在段的索引
+  let bestQ=null, bestIdx=0, bd=Infinity;
+  for(let i=0;i<navFullPts.length-1;i++){
+    const a=navFullPts[i], b=navFullPts[i+1];
+    const q=projectPointToSegment(P.x, P.y, a[0], a[1], b[0], b[1]);
+    const d=Math.hypot(P.x-q.x, P.y-q.y);
+    if(d<bd){ bd=d; bestQ=q; bestIdx=i; }
+  }
+  if(!bestQ) return;
+  // 剩余路线 = [投影点] + 投影段末尾(b)之后的所有点
+  const remaining=[[Math.round(bestQ.x), Math.round(bestQ.y)]];
+  for(let j=bestIdx+1; j<navFullPts.length; j++){
+    remaining.push(navFullPts[j]);
+  }
+  // 去重（投影点若与下一段起点重合则保留一次）
+  const clean=[];
+  for(const p of remaining){ const last=clean[clean.length-1]; if(!last||last[0]!==p[0]||last[1]!==p[1]) clean.push(p); }
+  navLeftPts=clean;
+  const ptsStr=clean.map(p=>p.join(",")).join(" ");
+  // 更新三条 polyline
+  const svg=$("svg");
+  const casing=svg?.querySelector(".route-casing"); if(casing) casing.setAttribute("points", ptsStr);
+  const route=svg?.querySelector(".route"); if(route) route.setAttribute("points", ptsStr);
+  const arrow=svg?.querySelector(".route-arrow"); if(arrow) arrow.setAttribute("points", ptsStr);
 }
 function setStartToGPS(){
   if(!gpsPoint){ startGPS(); return false; }
@@ -8873,6 +8918,16 @@ function refreshLabelRotation(){
   for(const L of labelCache){
     if(rot) L.el.setAttribute("transform",`rotate(${-rot} ${L.x} ${L.y})`);
     else L.el.removeAttribute("transform");
+  }
+  // “我的位置”标签：与地名标签用相同的反旋转逻辑（绕文字自身锚点）
+  const myLabel=$("svg")?.querySelector(".my-pos-label");
+  if(myLabel){
+    const mx=parseFloat(myLabel.getAttribute("data-lx"));
+    const my=parseFloat(myLabel.getAttribute("data-ly"));
+    if(isFinite(mx) && isFinite(my)){
+      if(rot) myLabel.setAttribute("transform",`rotate(${-rot} ${mx} ${my})`);
+      else myLabel.removeAttribute("transform");
+    }
   }
 }
 // 地名重绘后需重建缓存
@@ -9524,6 +9579,10 @@ function calculate(){
   $("end").value=ep.name;
   if(vp) $("via").value=vp.name;
   $("start").value=sp.name;
+  // 若起点是“我的位置”（实时定位），进入 GPS 吃豆人导航模式
+  if(sp && sp.type==='gps'){
+    gpsNavigating=true;
+  }
 
   const s=nearestNode(sp, ep), e=nearestNode(ep, sp);
   if(!s.node||!e.node)return toast("没有道路节点，无法导航");
@@ -9591,6 +9650,10 @@ function drawRoute(path,sn,en,vn){
   pts.push([en.x,en.y],[ep.x,ep.y]);
   const clean=[];
   for(const p of pts){ const last=clean[clean.length-1]; if(!last||last[0]!==p[0]||last[1]!==p[1])clean.push(p); }
+  // 保存完整路线点（供吃豆人导航按当前位置裁剪）
+  navFullPts=clean;
+  navLeftPts=clean;
+  navOnRoute=true;
   const points=clean.map(p=>p.join(",")).join(" ");
   // 底层白色描边（描边）
   const casing=document.createElementNS("http://www.w3.org/2000/svg","polyline");
