@@ -8596,7 +8596,7 @@ const GPS_MAP_CONFIG = {
 let gpsWatchId = null;
 let gpsPoint = null;
 let gpsHeading = null;
-let deviceHeading = null; // 设备朝向（罗盘），用于“我的位置”箭头指向手机朝向
+let deviceHeading = null; // 设备（手机）真实朝向，箭头跟随它转
 let gpsNavigating = false;
 let gpsLastAccuracy = null;
 let gpsLastRecalc = 0;
@@ -8746,34 +8746,30 @@ function drawMyPos(px, py){
   refreshLabelRotation();
   updateHeadingArrow();
 }
-// 监听设备朝向（罗盘）
+function updateHeadingArrow(){
+  // 箭头追随手机真实朝向：手机朝哪，箭头就指哪（陀螺仪 deviceHeading）。
+  // 箭头在旋转层内，层已被地图 rotate(rot) 转了，故箭头自身转角 = deviceHeading。
+  const g=$("svg")?.querySelector(".my-pos-g");
+  const arrow=g?.querySelector(".heading-arrow");
+  if(!arrow || deviceHeading==null) return;
+  const cx=parseFloat(arrow.getAttribute("data-cx"));
+  const cy=parseFloat(arrow.getAttribute("data-cy"));
+  arrow.setAttribute("transform","rotate("+deviceHeading+" "+cx+" "+cy+")");
+}
+// 监听设备朝向（罗盘）：手机朝向一变，箭头跟着转
 function initHeading(){
   try{ window.addEventListener('deviceorientationabsolute', onDeviceOrient, true); }catch(e){}
   window.addEventListener('deviceorientation', onDeviceOrient, true);
 }
 function onDeviceOrient(ev){
   let h=null, isIOS=false;
-  if(typeof ev.webkitCompassHeading==='number' && ev.webkitCompassHeading>=0){ h=ev.webkitCompassHeading; isIOS=true; } // iOS：0=北，顺时针
-  else if(typeof ev.alpha==='number' && ev.alpha!=null){ h=ev.alpha; } // Android：0=北，逆时针
+  if(typeof ev.webkitCompassHeading==='number' && ev.webkitCompassHeading>=0){ h=ev.webkitCompassHeading; isIOS=true; }
+  else if(typeof ev.alpha==='number' && ev.alpha!=null){ h=ev.alpha; }
   if(h!=null && isFinite(h)){
-    // 统一成“顺时针、0=北”的屏幕朝向角（iOS 本身就是顺时针；Android alpha 是逆时针，需取负）
     if(isIOS){ deviceHeading = ((h%360)+360)%360; }
     else { deviceHeading = ((-h%360)+360)%360; }
     updateHeadingArrow();
   }
-}
-function updateHeadingArrow(){
-  const g=$("svg")?.querySelector(".my-pos-g");
-  const arrow=g?.querySelector(".heading-arrow");
-  if(!arrow || deviceHeading==null) return;
-  const r=(typeof rot==='number'?rot:0);
-  // 箭头在旋转层内：层已按 CSS rotate(r) 顺时针转了 r 度。
-  // SVG 的 rotate() 也是顺时针为正（Y 轴向下）。要使最终屏幕朝向= deviceHeading（真实朝向），
-  // 箭头自身需反向抵消层的旋转：屏幕朝向 = r + angle = deviceHeading => angle = deviceHeading - r。
-  const angle=deviceHeading-r;
-  const cx=parseFloat(arrow.getAttribute("data-cx"));
-  const cy=parseFloat(arrow.getAttribute("data-cy"));
-  arrow.setAttribute("transform","rotate("+angle+" "+cx+" "+cy+")");
 }
 function renderGpsMarker(){
   // 兼容旧调用：统一走红色陀螺仪
@@ -8925,7 +8921,8 @@ function refreshLabelRotation(){
     if(rot) L.el.setAttribute("transform",`rotate(${-rot} ${L.x} ${L.y})`);
     else L.el.removeAttribute("transform");
   }
-  // “我的位置”标签：与地名标签用相同的反旋转逻辑（绕文字自身锚点）
+  // “我的位置”标签：跟其他地名标签一样，固定在标记上方（y-18），
+  // 只做 rotate(-rot) 反旋转保持字“正立不歪”，位置跟着地图一起转。
   const myLabel=$("svg")?.querySelector(".my-pos-label");
   if(myLabel){
     const mx=parseFloat(myLabel.getAttribute("data-lx"));
