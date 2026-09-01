@@ -8714,10 +8714,14 @@ function drawMyPos(px, py){
     accC.setAttribute("pointer-events","none");
     g.appendChild(accC);
   }
-  // 标签（“我的位置”文字，在精度圈之上；反旋转与其他地名标签统一，绕文字自身锚点）
+  // 标签（“我的位置”文字，在精度圈之上）。
+  // data-cx/data-cy 记录圆心（旋转中心）；data-off 记录文字相对圆心的偏移距离（正上方 18px）。
+  // 文字锚点坐标不是固定的——refreshLabelRotation 会根据 rot 动态算出“圆心的屏幕正上方”
+  // 在地图坐标系中的位置，再绕文字自身反向 -rot 转正，所以文字始终水平、且始终在圆心正上方。
   const t=document.createElementNS("http://www.w3.org/2000/svg","text");
   t.setAttribute("class","my-pos-label");
-  t.setAttribute("data-lx",x);t.setAttribute("data-ly",y-18);
+  t.setAttribute("data-cx",x);t.setAttribute("data-cy",y);
+  t.setAttribute("data-off",18);
   t.setAttribute("x",x);t.setAttribute("y",y-18);t.setAttribute("text-anchor","middle");t.setAttribute("dominant-baseline","middle");
   t.setAttribute("font-size","14");t.setAttribute("font-weight","bold");t.setAttribute("fill","#e53935");t.setAttribute("stroke","#fff");t.setAttribute("stroke-width",4);t.setAttribute("paint-order","stroke");
   t.textContent="我的位置";
@@ -8917,21 +8921,57 @@ let labelCache=null;
 function refreshLabelRotation(){
   if(!data||!readyImg) return;
   if(!labelCache){
-    labelCache=Array.from(document.querySelectorAll("#svg .place-label")).map(t=>({
-      el:t, x:parseFloat(t.getAttribute("x")), y:parseFloat(t.getAttribute("y"))
-    }));
+    labelCache=Array.from(document.querySelectorAll("#svg .place-label")).map(t=>{
+      const x=parseFloat(t.getAttribute("x")), y=parseFloat(t.getAttribute("y"));
+      const dx=parseFloat(t.getAttribute("data-dx")), dy=parseFloat(t.getAttribute("data-dy"));
+      // 记录文字相对标点的“固定偏移”（rot=0 时的相对位置，如标点右侧 +10,+4）
+      const ox=isFinite(dx)?(x-dx):null, oy=isFinite(dy)?(y-dy):null;
+      return {el:t, dx, dy, ox, oy};
+    });
   }
+  // 关键：所有标签都画在被外层 rotate(rot)（顺时针）旋转的 SVG 里。
+  // 要“文字相对标点方位固定 + 文字自身水平”，做法与“我的位置”一致：
+  //   1) 把文字锚点放在“经反向旋转后对应屏幕固定方位”的地图坐标上：
+  //        mx = dx + ox·cos + oy·sin ， my = dy - ox·sin + oy·cos
+  //      （其中 ox,oy 是 rot=0 时文字相对标点的固定偏移）
+  //   2) 单次 rotate(-rot) 绕文字自身转正，文字即保持水平。
+  const rad=rot*Math.PI/180, cos=Math.cos(rad), sin=Math.sin(rad);
   for(const L of labelCache){
-    if(rot) L.el.setAttribute("transform",`rotate(${-rot} ${L.x} ${L.y})`);
-    else L.el.removeAttribute("transform");
+    if(!rot){
+      L.el.removeAttribute("transform");
+      // 复位时恢复原始锚点
+      if(isFinite(L.dx)&&isFinite(L.ox)) L.el.setAttribute("x", L.dx + L.ox);
+      if(isFinite(L.dy)&&isFinite(L.oy)) L.el.setAttribute("y", L.dy + L.oy);
+      continue;
+    }
+    if(isFinite(L.dx)&&isFinite(L.dy)&&isFinite(L.ox)&&isFinite(L.oy)){
+      const mx=L.dx + L.ox*cos + L.oy*sin;
+      const my=L.dy - L.ox*sin + L.oy*cos;
+      L.el.setAttribute("x", mx);
+      L.el.setAttribute("y", my);
+      L.el.setAttribute("transform", `rotate(${-rot} ${mx} ${my})`);
+    } else {
+      // 无标点信息的老标签：仅转正文字
+      const x=parseFloat(L.el.getAttribute("x")), y=parseFloat(L.el.getAttribute("y"));
+      if(isFinite(x)&&isFinite(y)) L.el.setAttribute("transform", `rotate(${-rot} ${x} ${y})`);
+    }
   }
-  // “我的位置”标签：固定在标记(圆心)正上方，只做反旋转保持字正立，
-  // 跟其他地名标签一样。不做任何跟随箭头/绕圆心的额外旋转。
+  // “我的位置”标签：始终停在箭头（圆心）正上方、文字保持水平。
+  // 关键：文字锚点坐标不是固定的。外层把 SVG 顺时针转了 rot，要使文字始终在圆心的
+  // “屏幕正上方”，就要把锚点放在地图坐标系里“经反向旋转后对应屏幕上方”的位置：
+  //   mx = cx - off·sin(rot)，my = cy - off·cos(rot)
+  // 然后绕文字自身 (mx,my) 反向 -rot 转正，文字即保持水平。
   const myLabel=$("svg")?.querySelector(".my-pos-label");
   if(myLabel){
-    const mx=parseFloat(myLabel.getAttribute("data-lx"));
-    const my=parseFloat(myLabel.getAttribute("data-ly"));
-    if(isFinite(mx) && isFinite(my)){
+    const cx=parseFloat(myLabel.getAttribute("data-cx"));
+    const cy=parseFloat(myLabel.getAttribute("data-cy"));
+    const off=parseFloat(myLabel.getAttribute("data-off"))||18;
+    if(isFinite(cx) && isFinite(cy)){
+      const rad=rot*Math.PI/180;
+      const mx=cx - off*Math.sin(rad);
+      const my=cy - off*Math.cos(rad);
+      myLabel.setAttribute("x", mx);
+      myLabel.setAttribute("y", my);
       if(rot) myLabel.setAttribute("transform",`rotate(${-rot} ${mx} ${my})`);
       else myLabel.removeAttribute("transform");
     }
@@ -9913,6 +9953,9 @@ function renderBase(){
     t.setAttribute("y", p.y + 4);
     t.setAttribute("text-anchor", anchor);
     t.setAttribute("class","place-label");
+    // 记录所属标点（圆心）坐标，供 refreshLabelRotation 做“绕标点转”
+    t.setAttribute("data-dx", p.x);
+    t.setAttribute("data-dy", p.y);
     t.textContent=p.name;
     svg.appendChild(t);
   });
