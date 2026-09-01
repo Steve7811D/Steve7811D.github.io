@@ -9705,34 +9705,28 @@ function toast(msg){
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
 // zoom control +/-
-let __zoomAnimId=0; // 当前缩放动画的 rAF id。非 0 表示正在播放，期间忽略新点击（播放完才接受下一次）
+let __zoomAnimId=0; // 当前缩放动画的 rAF id，用于打断旧动画
 function zoomByButton(f){
-  // 正在播放动画时忽略本次点击，避免连点叠加导致果冻
-  if(__zoomAnimId) return;
   const v=$("viewport");
   const cx=v.clientWidth/2, cy=v.clientHeight/2;
+  // 打断上一个未完成的动画：从当前 scale 出发，立即开始新动画
+  if(__zoomAnimId) cancelAnimationFrame(__zoomAnimId);
   const startScale=scale, startTx=tx, startTy=ty;
   const targetScale=Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale*f));
   const el=$("transform"); el.classList.remove("animate"); clearTimeout(el._animTm);
-  // 以帧数为进度（而非墙钟时间）：卡顿/掉帧时动画变慢但会完整播完，不被“时间到”招断
+  // 帧计数 + 线性插值：卡顿时变慢但完整播完；被打断时从当前进度线性移到新目标，不突兀
   const totalFrames=15, frameStep=1/totalFrames;
   let frame=0;
   function step(){
     frame++;
     const p=Math.min(1, frame*frameStep);
-    const e=1-Math.pow(1-p,3);
-    const s=startScale+(targetScale-startScale)*e;
+    const s=startScale+(targetScale-startScale)*p; // 线性：不缓出
     const k=s/startScale;
     tx=cx-k*(cx-startTx); ty=cy-k*(cy-startTy);
     scale=s;
     applyTransform();
     if(frame<totalFrames) __zoomAnimId=requestAnimationFrame(step);
-    else {
-      scale=targetScale;
-      tx=cx-(targetScale/startScale)*(cx-startTx); ty=cy-(targetScale/startScale)*(cy-startTy);
-      applyTransform();
-      __zoomAnimId=0; // 动画结束，解锁
-    }
+    else __zoomAnimId=0; // 动画结束
   }
   __zoomAnimId=requestAnimationFrame(step);
 }
@@ -9760,22 +9754,21 @@ reposeDisclaimer();
 // compass click -> rotate back to north (rot = 0), keep scale/position
 let __rotAnimId=0; // 回正动画 rAF id，连点时取消旧动画避免叠加
 function resetRotation(){
-  // 正在回正动画时忽略新点击，避免叠加果冻
-  if(__rotAnimId) return;
+  // 打断上一个未完成的回正动画：从当前 rot 出发，立即开始新动画
+  if(__rotAnimId) cancelAnimationFrame(__rotAnimId);
   const v=$("viewport");
   const sx=v.clientWidth/2, sy=v.clientHeight/2;
   const m=screenToMap(sx, sy);
   const cx=mapCx(), cy=mapCy();
   const startRot=rot;
   const el=$("transform"); el.classList.remove("animate"); clearTimeout(el._animTm);
-  // 以帧数为进度（而非墙钟时间）：卡顿/掉帧时动画变慢但会完整播完
+  // 帧计数 + 线性插值：卡顿时变慢但完整播完；被打断时从当前进度线性移到新目标
   const totalFrames=15, frameStep=1/totalFrames;
   let frame=0;
   function step(){
     frame++;
     const p=Math.min(1, frame*frameStep);
-    const e=1-Math.pow(1-p,3);
-    rot=startRot*(1-e);
+    rot=startRot*(1-p); // 线性：不缓出
     const rad=rot*Math.PI/180;
     const cos=Math.cos(rad), sin=Math.sin(rad);
     const px=m.x-cx, py=m.y-cy;
@@ -9784,7 +9777,7 @@ function resetRotation(){
     tx=sx-rxr; ty=sy-ryr;
     applyTransform();
     if(frame<totalFrames) __rotAnimId=requestAnimationFrame(step);
-    else __rotAnimId=0; // 动画结束，解锁
+    else __rotAnimId=0; // 动画结束
   }
   __rotAnimId=requestAnimationFrame(step);
 }
