@@ -8747,14 +8747,16 @@ function drawMyPos(px, py){
   updateHeadingArrow();
 }
 function updateHeadingArrow(){
-  // 箭头追随手机真实朝向：手机朝哪，箭头就指哪（陀螺仪 deviceHeading）。
-  // 箭头在旋转层内，层已被地图 rotate(rot) 转了，故箭头自身转角 = deviceHeading。
+  // 箭头追随手机真实朝向，并叠加与文字相同的反旋转(-rot)抵消地图旋转：
+  // 箭头转角 = deviceHeading - rot。即箭头相对地图固定、随手机朝向转。
   const g=$("svg")?.querySelector(".my-pos-g");
   const arrow=g?.querySelector(".heading-arrow");
   if(!arrow || deviceHeading==null) return;
+  const r=(typeof rot==='number'?rot:0);
+  const angle=deviceHeading-r;
   const cx=parseFloat(arrow.getAttribute("data-cx"));
   const cy=parseFloat(arrow.getAttribute("data-cy"));
-  arrow.setAttribute("transform","rotate("+deviceHeading+" "+cx+" "+cy+")");
+  arrow.setAttribute("transform","rotate("+angle+" "+cx+" "+cy+")");
 }
 // 监听设备朝向（罗盘）：手机朝向一变，箭头跟着转
 function initHeading(){
@@ -8921,8 +8923,8 @@ function refreshLabelRotation(){
     if(rot) L.el.setAttribute("transform",`rotate(${-rot} ${L.x} ${L.y})`);
     else L.el.removeAttribute("transform");
   }
-  // “我的位置”标签：跟其他地名标签一样，固定在标记上方（y-18），
-  // 只做 rotate(-rot) 反旋转保持字“正立不歪”，位置跟着地图一起转。
+  // “我的位置”标签：固定在标记(圆心)正上方，只做反旋转保持字正立，
+  // 跟其他地名标签一样。不做任何跟随箭头/绕圆心的额外旋转。
   const myLabel=$("svg")?.querySelector(".my-pos-label");
   if(myLabel){
     const mx=parseFloat(myLabel.getAttribute("data-lx"));
