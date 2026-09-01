@@ -8767,10 +8767,10 @@ function updateHeadingArrow(){
   const arrow=g?.querySelector(".heading-arrow");
   if(!arrow || deviceHeading==null) return;
   const r=(typeof rot==='number'?rot:0);
-  // 屏幕朝北基准：箭头初始朝上=北(SVG负Y)。地图层已按 CSS rotate(r)(屏幕顺时针) 旋转。
-  // SVG 的 rotate() 逆时针为正，因此要抵消 r 得到屏幕真实朝向 deviceHeading，
-  // 需满足 屏幕角度 = r - svgAngle ，令其 = deviceHeading => svgAngle = r - deviceHeading。
-  const angle=r-deviceHeading;
+  // 箭头在旋转层内：层已按 CSS rotate(r) 顺时针转了 r 度。
+  // SVG 的 rotate() 也是顺时针为正（Y 轴向下）。要使最终屏幕朝向= deviceHeading（真实朝向），
+  // 箭头自身需反向抵消层的旋转：屏幕朝向 = r + angle = deviceHeading => angle = deviceHeading - r。
+  const angle=deviceHeading-r;
   const cx=parseFloat(arrow.getAttribute("data-cx"));
   const cy=parseFloat(arrow.getAttribute("data-cy"));
   arrow.setAttribute("transform","rotate("+angle+" "+cx+" "+cy+")");
