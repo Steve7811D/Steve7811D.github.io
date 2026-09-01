@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-<script defer src="https://cloud.umami.is/script.js" data-website-id="04264cc9-21e8-4b19-8d24-83f8e22cc384"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>导航</title>
@@ -157,7 +156,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
   #result-panel{position:fixed;left:14px;right:auto;bottom:14px;width:360px;max-height:calc(100vh - 160px)}
 
   /* disclaimer: fixed bottom-right, white text only */
-  .disclaimer{position:fixed;left:auto;right:14px;bottom:12px;top:auto;text-align:right;padding:0;margin:0;color:#fff;font-size:12px;font-weight:600;line-height:1.4;pointer-events:none;z-index:40;text-shadow:0 1px 3px rgba(0,0,0,.6),0 0 6px rgba(0,0,0,.4)}
+  .disclaimer{position:fixed;left:auto;right:14px;bottom:12px;top:auto;text-align:right;padding:0;margin:0;color:#fff;font-size:12px;font-weight:600;line-height:1.4;pointer-events:auto;z-index:40;text-shadow:0 1px 3px rgba(0,0,0,.6),0 0 6px rgba(0,0,0,.4)}
   /* zoom control: above disclaimer bottom-right */
   #zoom-control{right:14px;bottom:44px}
   #calcloading{left:50%;right:auto;bottom:44px;transform:translateX(-50%)}
@@ -213,7 +212,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
       <input id="via" type="text" placeholder="途经点（可选）· 搜索地点" autocomplete="off">
       <div class="suggest" id="sg-via"></div>
     </div>
-    <div class="disclaimer">免责声明:非官方项目，仅供学习参考，侵权请联系删除</div>
+    <div class="disclaimer">非官方项目，仅供学习参考，侵权请联系删除 · <a href="二维码.jpg" target="_blank" style="color:inherit;text-decoration:underline;pointer-events:auto">问题反馈</a></div>
     <div class="btn-row">
       <button id="routeBtn" class="btn primary">开始导航</button>
       <button id="clearBtn" class="btn ghost">清除</button>
