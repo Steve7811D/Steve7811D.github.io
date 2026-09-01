@@ -8752,11 +8752,13 @@ function initHeading(){
   window.addEventListener('deviceorientation', onDeviceOrient, true);
 }
 function onDeviceOrient(ev){
-  let h=null;
-  if(typeof ev.webkitCompassHeading==='number' && ev.webkitCompassHeading>=0){ h=ev.webkitCompassHeading; }
-  else if(typeof ev.alpha==='number' && ev.alpha!=null){ h=ev.alpha; }
+  let h=null, isIOS=false;
+  if(typeof ev.webkitCompassHeading==='number' && ev.webkitCompassHeading>=0){ h=ev.webkitCompassHeading; isIOS=true; } // iOS：0=北，顺时针
+  else if(typeof ev.alpha==='number' && ev.alpha!=null){ h=ev.alpha; } // Android：0=北，逆时针
   if(h!=null && isFinite(h)){
-    deviceHeading=((-h%360)+360)%360;
+    // 统一成“顺时针、0=北”的屏幕朝向角（iOS 本身就是顺时针；Android alpha 是逆时针，需取负）
+    if(isIOS){ deviceHeading = ((h%360)+360)%360; }
+    else { deviceHeading = ((-h%360)+360)%360; }
     updateHeadingArrow();
   }
 }
@@ -8764,7 +8766,11 @@ function updateHeadingArrow(){
   const g=$("svg")?.querySelector(".my-pos-g");
   const arrow=g?.querySelector(".heading-arrow");
   if(!arrow || deviceHeading==null) return;
-  const angle=deviceHeading-(typeof rot==='number'?rot:0);
+  const r=(typeof rot==='number'?rot:0);
+  // 屏幕朝北基准：箭头初始朝上=北(SVG负Y)。地图层已按 CSS rotate(r)(屏幕顺时针) 旋转。
+  // SVG 的 rotate() 逆时针为正，因此要抵消 r 得到屏幕真实朝向 deviceHeading，
+  // 需满足 屏幕角度 = r - svgAngle ，令其 = deviceHeading => svgAngle = r - deviceHeading。
+  const angle=r-deviceHeading;
   const cx=parseFloat(arrow.getAttribute("data-cx"));
   const cy=parseFloat(arrow.getAttribute("data-cy"));
   arrow.setAttribute("transform","rotate("+angle+" "+cx+" "+cy+")");
@@ -8880,6 +8886,7 @@ function applyTransform(){
   refreshLabelRotation();
   renderScalebar();
   updateCompass();
+  updateHeadingArrow();
 }
 
 // LOD 已停用（缩略图切换会引入切图闪 + 阈值对不上）。只显示高清图，从别处解决闪烁。
