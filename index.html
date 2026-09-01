@@ -8747,13 +8747,15 @@ function drawMyPos(px, py){
   updateHeadingArrow();
 }
 function updateHeadingArrow(){
-  // 箭头追随手机真实朝向，并叠加与文字相同的反旋转(-rot)抵消地图旋转：
-  // 箭头转角 = deviceHeading - rot。即箭头相对地图固定、随手机朝向转。
+  // 箭头指向设备真实朝向（deviceHeading，地图坐标系下），再由外层 transform 的
+  // rotate(rot) 把地图旋转叠加上去。屏幕上最终朝向 = deviceHeading + rot。
+  // 之前的做法是 deviceHeading - rot（企图抵消地图旋转），结果地图一旋转，
+  // 箭头就在屏幕上原地不动——去掉这个抵消即可：让箭头固定在地图坐标系内指向
+  // deviceHeading，地图转到哪它就跟着转到哪，直觉上始终正确。
   const g=$("svg")?.querySelector(".my-pos-g");
   const arrow=g?.querySelector(".heading-arrow");
   if(!arrow || deviceHeading==null) return;
-  const r=(typeof rot==='number'?rot:0);
-  const angle=deviceHeading-r;
+  const angle=deviceHeading;
   const cx=parseFloat(arrow.getAttribute("data-cx"));
   const cy=parseFloat(arrow.getAttribute("data-cy"));
   arrow.setAttribute("transform","rotate("+angle+" "+cx+" "+cy+")");
