@@ -112,6 +112,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
 #loc-input::placeholder{color:var(--muted)}
 #loc-btn{flex:0 0 auto;border:none;border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600;color:#fff;background:linear-gradient(135deg,var(--primary),#7b5cf7);box-shadow:var(--shadow);cursor:pointer}
 #loc-btn:active{transform:scale(.96)}
+#gps-status{position:fixed;left:50%;top:calc(68px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:1002;background:rgba(31,41,55,.9);color:#fff;padding:8px 13px;border-radius:18px;font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,.2);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .35s ease}
+#gps-status.show{opacity:1}
+
 #loc-suggest{position:absolute;left:0;right:64px;top:100%;margin-top:4px;z-index:1001;background:var(--card);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);border:none;border-radius:10px;box-shadow:0 6px 20px rgba(31,41,55,.25);max-height:400px;overflow-y:auto;display:none}
 #loc-suggest.show{display:block}
 #loc-suggest .item{padding:10px 12px;font-size:14px;cursor:pointer;border-bottom:1px solid #f3f5f9;color:var(--text)}
@@ -127,6 +130,13 @@ input,textarea{-webkit-user-select:text;user-select:text}
 #zoom-control button{width:42px;height:42px;border:1px solid rgba(255,255,255,.35);border-radius:50%;font-size:24px;font-weight:500;line-height:1;color:#fff;background:rgba(255,255,255,.18);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%);box-shadow:0 4px 16px rgba(31,41,55,.18);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s,transform .1s}
 #zoom-control button:active{transform:scale(.92)}
 #zoom-control button:hover{background:rgba(255,255,255,.30)}
+
+/* 定位按钮（替换自导航.html样式）：蓝色圆 + 定位 pin 图标；初始黄(loc-wait) → 定位成功变蓝 */
+#fuse-locate{display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+#fuse-locate #loc-btn2{width:42px;height:42px;border:1px solid rgba(255,255,255,.35);border-radius:50%;background:#1BA1E2;color:#fff;box-shadow:0 4px 16px rgba(27,161,226,.45);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .3s,box-shadow .3s,transform .15s}
+#fuse-locate #loc-btn2:active{transform:scale(.9)}
+#fuse-locate #loc-btn2 svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2.4}
+#fuse-locate #loc-btn2.loc-wait{background:#F5A623;box-shadow:0 4px 16px rgba(245,166,35,.55);border-color:rgba(255,255,255,.6)}
 
 /* Desktop layout (tablet/PC >=768px) */
 @media (min-width:768px){
@@ -179,6 +189,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
 </div>
 
 </div>
+<div id="gps-status"></div>
 
 <div id="result-panel">
   <button class="close" id="closeResult">✕</button>
@@ -202,7 +213,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
       <input id="via" type="text" placeholder="途经点（可选）· 搜索地点" autocomplete="off">
       <div class="suggest" id="sg-via"></div>
     </div>
-    <div class="disclaimer">非官方项目，仅供学习参考，侵权请联系删除</div>
+    <div class="disclaimer">免责声明:非官方项目，仅供学习参考，侵权请联系删除</div>
     <div class="btn-row">
       <button id="routeBtn" class="btn primary">开始导航</button>
       <button id="clearBtn" class="btn ghost">清除</button>
@@ -213,8 +224,16 @@ input,textarea{-webkit-user-select:text;user-select:text}
 <!-- 隐藏的文件导入（网页版兜底） -->
 <!-- 缂╂斁鎺т欢 + / - -->
 <div id="zoom-control">
-  <button id="zoom-in" title="鏀惧ぇ">+</button>
-  <button id="zoom-out" title="缂╁皬">-</button>
+  <div id="fuse-locate">
+    <button id="loc-btn2" title="定位我的位置" aria-label="定位">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 21s-7-5.5-7-11a7 7 0 0 1 14 0c0 5.5-7 11-7 11z"/>
+        <circle cx="12" cy="10" r="3" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
+  </div>
+  <button id="zoom-in" title="放大">+</button>
+  <button id="zoom-out" title="缩小">−</button>
 </div>
 
 <input id="imgFile" type="file" accept="image/*" class="hidden">
@@ -8561,7 +8580,229 @@ let sp=null, ep=null, vp=null;
 // —— 寻路优化参数 ——
 const TURN_PENALTY = 30;
 const SNAP_DIR_WEIGHT = 3.0;
-const METER_PER_PX = 0.5858;
+const METER_PER_PX = 0.586;
+
+// ===== GPS 无需用户校准：固定校园坐标基准 =====
+// 地图按“1 像素 = 0.586 米”，假定图片北向上。
+// 基准点采用公开的曲阜师范大学（曲阜校区）中心近似坐标；如后续拿到更精确控制点，只需修改这里。
+const GPS_MAP_CONFIG = {
+  metersPerPixel: 0.586,
+  // 图片中心（按当前地图 2696×1780 的中心）
+  mapAnchorX: 1348,
+  mapAnchorY: 890,
+  // 曲阜师范大学曲阜校区公开坐标近似：35.5959N, 116.95765E
+  latitude: 35.5959,
+  longitude: 116.95765
+};
+let gpsWatchId = null;
+let gpsPoint = null;
+let gpsHeading = null;
+let deviceHeading = null; // 设备朝向（罗盘），用于“我的位置”箭头指向手机朝向
+let gpsNavigating = false;
+let gpsLastAccuracy = null;
+let gpsLastRecalc = 0;
+let gpsPendingFirstFix = false; // 点击定位后，等待首次成功回调做一次性动作（设起点+居中+弹窗）
+const GPS_RECALC_MIN_MS = 3500;
+const GPS_OFF_ROUTE_PX = 60; // 约35米
+
+function gpsMetersPerDegreeLat(){ return 111132.92; }
+function gpsMetersPerDegreeLon(lat){ return 111412.84 * Math.cos(lat*Math.PI/180); }
+function gpsToMap(lat,lon){
+  const dx=(lon-GPS_MAP_CONFIG.longitude)*gpsMetersPerDegreeLon(lat);
+  const dy=(GPS_MAP_CONFIG.latitude-lat)*gpsMetersPerDegreeLat();
+  return {
+    x:GPS_MAP_CONFIG.mapAnchorX + dx/GPS_MAP_CONFIG.metersPerPixel,
+    y:GPS_MAP_CONFIG.mapAnchorY + dy/GPS_MAP_CONFIG.metersPerPixel
+  };
+}
+function showGpsStatus(text,ms=3000){
+  const el=$("gps-status"); if(!el)return;
+  el.textContent=text;
+  el.classList.add("show");
+  clearTimeout(el._tm);
+  // 3 秒后自动淡出（opacity 过渡），不切换 display，保证淡出动画可看
+  if(ms>0) el._tm=setTimeout(()=>{ el.classList.remove("show"); }, ms);
+}
+function gpsError(err){
+  const msg = err && err.code===1 ? "请允许浏览器使用定位权限" : (err && err.code===2 ? "暂时无法获取GPS位置" : "GPS定位超时，请到室外再试");
+  showGpsStatus(msg,3000);
+  // 失败保持黄色（loc-wait）
+  const b=$("loc-btn2"); if(b) b.classList.add("loc-wait");
+}
+function startGPS(){
+  if(!navigator.geolocation){ showGpsStatus("此浏览器不支持GPS定位",3000); return; }
+  if(gpsWatchId!==null){
+    navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId=null;
+  }
+  const b=$("loc-btn2"); if(b) b.classList.add("loc-wait");
+  gpsPendingFirstFix=true; // 本次点击：等首次成功回调做一次性动作
+  showGpsStatus("正在获取当前位置…",0);
+  gpsWatchId=navigator.geolocation.watchPosition(onGPSPosition,gpsError,{
+    enableHighAccuracy:true, maximumAge:1500, timeout:12000
+  });
+}
+function centerOnGPS(){
+  if(!gpsPoint || !data || !readyImg) return;
+  const v=$("viewport");
+  const cx=mapCx(), cy=mapCy();
+  const rad=rot*Math.PI/180, cos=Math.cos(rad), sin=Math.sin(rad);
+  const rx=(gpsPoint.x-cx)*scale, ry=(gpsPoint.y-cy)*scale;
+  const rxr=rx*cos-ry*sin, ryr=rx*sin+ry*cos;
+  tx=v.clientWidth/2-rxr;
+  ty=v.clientHeight/2-ryr;
+  const el=$("transform");
+  el.classList.add("animate");
+  applyTransform();
+  clearTimeout(el._gpsAnimTm);
+  el._gpsAnimTm=setTimeout(()=>el.classList.remove("animate"),450);
+}
+
+function onGPSPosition(pos){
+  const c=pos.coords;
+  const p=gpsToMap(c.latitude,c.longitude);
+  gpsPoint={x:p.x,y:p.y,lat:c.latitude,lon:c.longitude,accuracy:Number(c.accuracy)||0,time:Date.now()};
+  gpsLastAccuracy=gpsPoint.accuracy;
+  if(c.heading!=null && Number.isFinite(c.heading) && c.heading>=0) gpsHeading=c.heading;
+  drawMyPos(gpsPoint.x, gpsPoint.y);
+  // 仅“点击定位后的首次成功”做一次性动作：变蓝+居中+设起点+弹窗
+  if(gpsPendingFirstFix){
+    gpsPendingFirstFix=false;
+    const b=$("loc-btn2"); if(b) b.classList.remove("loc-wait"); // 成功变蓝
+    showGpsStatus(`定位成功 · 精度约 ${Math.round(gpsPoint.accuracy)} 米`,3000);
+    centerOnGPS();
+    setStartToNearestPlace();
+  }
+  // GPS已获取后，把当前位置作为起点；用户输入终点后可直接开始导航。
+  if(gpsNavigating && ep){
+    const now=Date.now();
+    if(now-gpsLastRecalc>GPS_RECALC_MIN_MS){
+      const routeDist=distanceToCurrentRoute(gpsPoint);
+      if(routeDist>GPS_OFF_ROUTE_PX || !routeOptions.length){
+        gpsLastRecalc=now;
+        calculateFromGPS(false);
+      }
+    }
+  }
+}
+// ===== “我的位置”红色陀螺仪（替换自导航.html样式）：实心红圆 + 尖三角箭头，箭头指向设备朝向 =====
+function drawMyPos(px, py){
+  if(!data||!readyImg) return;
+  if(px==null||py==null){ if(!gpsPoint) return; px=gpsPoint.x; py=gpsPoint.y; }
+  const svg=$("svg");
+  let g=svg.querySelector(".my-pos-g");
+  if(!g){
+    g=document.createElementNS("http://www.w3.org/2000/svg","g");
+    g.setAttribute("class","my-pos-g");
+    svg.appendChild(g);
+  }
+  g.innerHTML="";
+  const x=px, y=py;
+  const R=9, tip=16, half=7;
+  // 精度范围圈（蓝色半透明，最底层）：半径 = accuracy 换算像素，限制最大 90px
+  if(gpsPoint && gpsPoint.accuracy){
+    const accR=Math.min(90, Math.max(8, gpsPoint.accuracy/METER_PER_PX));
+    const accC=document.createElementNS("http://www.w3.org/2000/svg","circle");
+    accC.setAttribute("cx",x);accC.setAttribute("cy",y);accC.setAttribute("r",accR);
+    accC.setAttribute("fill","rgba(37,99,235,.12)");accC.setAttribute("stroke","rgba(37,99,235,.28)");accC.setAttribute("stroke-width","2");
+    accC.setAttribute("pointer-events","none");
+    g.appendChild(accC);
+  }
+  // 标签（“我的位置”文字，在精度圈之上）
+  const t=document.createElementNS("http://www.w3.org/2000/svg","text");
+  t.setAttribute("x",x);t.setAttribute("y",y-18);t.setAttribute("text-anchor","middle");t.setAttribute("dominant-baseline","middle");
+  t.setAttribute("font-size","14");t.setAttribute("font-weight","bold");t.setAttribute("fill","#e53935");t.setAttribute("stroke","#fff");t.setAttribute("stroke-width",4);t.setAttribute("paint-order","stroke");
+  t.textContent="我的位置";
+  const r=typeof rot==='number'?rot:0;
+  t.setAttribute("transform","rotate("+(-r)+" "+x+" "+y+")");
+  g.appendChild(t);
+  // 外凸尖三角（默认朝上=北）
+  const arrow=document.createElementNS("http://www.w3.org/2000/svg","path");
+  arrow.setAttribute("class","heading-arrow");
+  arrow.setAttribute("data-cx",x);arrow.setAttribute("data-cy",y);
+  const ay=y-R+1;
+  arrow.setAttribute("d","M "+(x-half)+" "+ay+" L "+x+" "+(y-tip)+" L "+(x+half)+" "+ay+" Z");
+  arrow.setAttribute("fill","#e53935");arrow.setAttribute("stroke","#fff");arrow.setAttribute("stroke-width","3");arrow.setAttribute("stroke-linejoin","round");
+  arrow.setAttribute("pointer-events","none");
+  g.appendChild(arrow);
+  // 实心红圆（带白边）
+  const circle=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  circle.setAttribute("cx",x);circle.setAttribute("cy",y);circle.setAttribute("r",R);
+  circle.setAttribute("fill","#e53935");circle.setAttribute("stroke","#fff");circle.setAttribute("stroke-width","3");
+  circle.setAttribute("pointer-events","none");
+  g.appendChild(circle);
+  // 圆心小白点（最顶层）
+  const white=document.createElementNS("http://www.w3.org/2000/svg","circle");
+  white.setAttribute("cx",x);white.setAttribute("cy",y);white.setAttribute("r",3.4);
+  white.setAttribute("fill","#fff");white.setAttribute("pointer-events","none");
+  g.appendChild(white);
+  svg.appendChild(g);
+  updateHeadingArrow();
+}
+// 监听设备朝向（罗盘）
+function initHeading(){
+  try{ window.addEventListener('deviceorientationabsolute', onDeviceOrient, true); }catch(e){}
+  window.addEventListener('deviceorientation', onDeviceOrient, true);
+}
+function onDeviceOrient(ev){
+  let h=null;
+  if(typeof ev.webkitCompassHeading==='number' && ev.webkitCompassHeading>=0){ h=ev.webkitCompassHeading; }
+  else if(typeof ev.alpha==='number' && ev.alpha!=null){ h=ev.alpha; }
+  if(h!=null && isFinite(h)){
+    deviceHeading=((-h%360)+360)%360;
+    updateHeadingArrow();
+  }
+}
+function updateHeadingArrow(){
+  const g=$("svg")?.querySelector(".my-pos-g");
+  const arrow=g?.querySelector(".heading-arrow");
+  if(!arrow || deviceHeading==null) return;
+  const angle=deviceHeading-(typeof rot==='number'?rot:0);
+  const cx=parseFloat(arrow.getAttribute("data-cx"));
+  const cy=parseFloat(arrow.getAttribute("data-cy"));
+  arrow.setAttribute("transform","rotate("+angle+" "+cx+" "+cy+")");
+}
+function renderGpsMarker(){
+  // 兼容旧调用：统一走红色陀螺仪
+  drawMyPos();
+}
+function distanceToCurrentRoute(p){
+  if(!routeOptions.length||selectedRouteIndex<0||!data)return Infinity;
+  const r=routeOptions[selectedRouteIndex]; const nm=nodeMap(); let best=Infinity;
+  const pts=[];
+  if(curS) pts.push([curS.x,curS.y]);
+  for(const id of r.path){const n=nm.get(id);if(n)pts.push([n.x,n.y]);}
+  if(curE) pts.push([curE.x,curE.y]);
+  for(let i=0;i<pts.length-1;i++){
+    const q=projectPointToSegment(p.x,p.y,pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
+    best=Math.min(best,Math.hypot(p.x-q.x,p.y-q.y));
+  }
+  return best;
+}
+function setStartToGPS(){
+  if(!gpsPoint){ startGPS(); return false; }
+  setStartToNearestPlace();
+  return true;
+}
+// 起点自动设为“我的位置(最近地点+附近)”——每次点击定位都这样
+function setStartToNearestPlace(){
+  if(!gpsPoint || !data) return;
+  const s=$("start"); if(!s) return;
+  let nearest=null, bd=Infinity;
+  for(const p of data.places){
+    const d=Math.hypot(p.x-gpsPoint.x, p.y-gpsPoint.y);
+    if(d<bd){ bd=d; nearest=p; }
+  }
+  if(nearest) s.value='我的位置('+nearest.name+'·附近)';
+  else s.value='我的位置';
+}
+function calculateFromGPS(auto=false){
+  if(!gpsPoint){ showGpsStatus("还没有获取到GPS位置",2500); startGPS(); return; }
+  if(!$("end").value.trim()){ showGpsStatus("请先选择终点",2500); return; }
+  setStartToNearestPlace();
+  gpsNavigating=true;
+  calculate();
+}
+
 
 // ===== 缩放/平移/旋转状态 =====
 // 变换统一为：translate(tx,ty) rotate(rot) scale(scale) translate(-cx,-cy)
@@ -8848,6 +9089,11 @@ function autoLoad(){
   img.src='campus.webp';
 }
 autoLoad();
+// 初始化：启动设备朝向监听 + 定位按钮初始黄色
+initHeading();
+(function(){
+  const b=$("loc-btn2"); if(b) b.classList.add("loc-wait");
+})();
 
 function fillPlaces(){
   if(!data || !data.places.length) return;
@@ -9057,6 +9303,9 @@ function resolvePlace(inputVal){
   if(!data||!inputVal) return null;
   const t=String(inputVal).trim();
   if(!t) return null;
+  if((t==="我的当前位置" || t.indexOf("我的位置")===0) && gpsPoint){
+    return {id:"__gps__", name:"我的位置", x:gpsPoint.x, y:gpsPoint.y, type:"gps", note:"GPS实时位置"};
+  }
   let p=data.places.find(x=>x.name===t);
   if(p) return p;
   const hits=data.places.filter(x=>x.name.includes(t));
@@ -9373,6 +9622,7 @@ function drawRoute(path,sn,en,vn){
   }
   // 将地名文字提升到最顶层，避免被路线盖住
   bringLabelsToTop();
+  renderGpsMarker();
   focusOnRoute(clean);
 }
 
@@ -9565,6 +9815,8 @@ function gotoPlace(p){
   applyTransform();
   clearTimeout(el._animTm);
   el._animTm=setTimeout(()=>el.classList.remove("animate"),550);
+  // 手动搜索定位到某地点后，定位按钮回到黄色（表示不再是“实时定位”状态）
+  const b=$("loc-btn2"); if(b) b.classList.add("loc-wait");
 }
 
 function fmtDist(px){
@@ -9597,6 +9849,7 @@ function renderBase(){
   // 地名重绘后需重建反旋转缓存
   invalidateLabelCache();
   renderScalebar();
+  renderGpsMarker();
 }
 
 function renderScalebar(){
@@ -9671,7 +9924,13 @@ function doNavigateTo(name){
 
 
 $("routeBtn").onclick=calculate;
+$("loc-btn2").onclick=()=>{
+  // 每次点击都重新定位：保持黄(loc-wait)，重新 startGPS
+  startGPS();
+};
+
 $("clearBtn").onclick=()=>{
+  gpsNavigating=false;
   routeOptions=[];selectedRouteIndex=-1;sp=null;ep=null;vp=null;
   $("result").textContent="";
   $("result-panel").classList.remove("show");
@@ -9680,6 +9939,7 @@ $("clearBtn").onclick=()=>{
   renderBase();
 };
 $("closeResult").onclick=()=>{
+  gpsNavigating=false;
   routeOptions=[];selectedRouteIndex=-1;sp=null;ep=null;vp=null;
   $("result").textContent="";
   $("result-panel").classList.remove("show");
