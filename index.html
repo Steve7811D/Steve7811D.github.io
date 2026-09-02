@@ -169,6 +169,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .dl-link{color:inherit;text-decoration:underline;pointer-events:auto;cursor:pointer}
 #disclaimer-mask{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(15,23,42,.48);backdrop-filter:blur(6px) saturate(130%);-webkit-backdrop-filter:blur(6px) saturate(130%);animation:dlFadeIn .28s ease}
 @keyframes dlFadeIn{from{opacity:0}to{opacity:1}}
+#disclaimer-mask.dl-closing{animation:dlFadeOut .28s ease forwards}
+@keyframes dlFadeOut{from{opacity:1}to{opacity:0}}
 .dl-dialog{width:100%;max-width:360px;max-height:82vh;overflow-y:auto;background:#fff;border-radius:20px;box-shadow:0 24px 64px rgba(31,41,55,.28);padding:22px 20px 18px;animation:dlPop .3s cubic-bezier(.22,1,.36,1)}
 @keyframes dlPop{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
 .dl-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
@@ -232,7 +234,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
       <input id="via" type="text" placeholder="途经点（可选）· 搜索地点" autocomplete="off">
       <div class="suggest" id="sg-via"></div>
     </div>
-    <div class="disclaimer"><a class="dl-link" id="disclaimer-link" href="javascript:void(0)">声明</a> · <a href="二维码.jpg" target="_blank" class="dl-link" style="pointer-events:auto">问题反馈</a></div>
+    <div class="disclaimer"><a class="dl-link" id="disclaimer-link" href="javascript:void(0)">声明</a> · <a href="二维码.jpg" class="dl-link" style="pointer-events:auto">问题反馈</a></div>
     <div class="btn-row">
       <button id="routeBtn" class="btn primary">开始导航</button>
       <button id="clearBtn" class="btn ghost">清除</button>
@@ -1849,17 +1851,25 @@ $("compass").addEventListener("click", resetRotation);
 // ===== 免责声明弹窗：每次打开自动弹出，手动确认关闭 =====
 function openDisclaimer(){
   const mask=document.getElementById("disclaimer-mask");
-  if(mask) mask.style.display="flex";
+  if(!mask) return;
+  mask.classList.remove("dl-closing");
+  mask.style.display="flex";
 }
 function closeDisclaimer(){
   const mask=document.getElementById("disclaimer-mask");
-  if(mask) mask.style.display="none";
+  if(!mask || mask.style.display==="none") return;
+  mask.classList.add("dl-closing");
+  // 淡出动画结束后再隐藏
+  setTimeout(()=>{ mask.style.display="none"; mask.classList.remove("dl-closing"); }, 280);
 }
 function initDisclaimer(){
   const link=document.getElementById("disclaimer-link");
   if(link) link.addEventListener("click", openDisclaimer);
   const btn=document.getElementById("dl-confirm");
   if(btn) btn.addEventListener("click", closeDisclaimer);
+  // 点击遮罩空白处（非弹窗卡片本身）即关闭，与点击确认按钮同带淡出动画
+  const dmask=document.getElementById("disclaimer-mask");
+  if(dmask) dmask.addEventListener("click", e=>{ if(e.target===dmask) closeDisclaimer(); });
   // 每次加载页面自动弹出
   openDisclaimer();
 }
@@ -1879,7 +1889,7 @@ if(document.readyState==="loading"){
     </div>
     <div class="dl-body" id="dl-body">
       <p>本网站为<em>非官方个人项目</em>，不代表学校或任何官方机构立场，所有内容仅供学习参考。</p>
-      <p>由于个人制作，地图、路线及地点信息可能存在滞后或偏差，仅供参考，请勿当真，请以校园实际布局为准。</p>
+      <p>由于个人制作，地图、路线及地点信息可能存在滞后或偏差，仅供参考，请勿当真，请以建筑实际布局位置为准。</p>
       <p class="dl-contact">如涉及版权或其他权益问题，请及时联系以删除内容。</p>
     </div>
     <div class="dl-foot">
