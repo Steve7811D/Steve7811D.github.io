@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-<script defer src="https://cloud.umami.is/script.js" data-website-id="04264cc9-21e8-4b19-8d24-83f8e22cc384"></script>
 <link rel="icon" type="image/png" sizes="256x256" href="favicon.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
@@ -182,8 +181,9 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .dl-body .safe{text-decoration:underline;text-decoration-style:solid;text-decoration-color:#e11d48;text-decoration-thickness:2px;text-underline-offset:4px}
 .dl-body .dl-contact{background:#f6f8ff;border-radius:10px;padding:10px 12px;font-size:13px;color:var(--muted);margin-bottom:6px}
 .dl-body .dl-contact a{color:var(--primary);text-decoration:none;font-weight:600}
-.dl-foot{display:flex;justify-content:flex-end;margin-top:16px}
+.dl-foot{display:flex;justify-content:center;gap:40px;margin-top:16px}
 .dl-btn{flex:0 0 auto;min-width:112px;background:linear-gradient(135deg,var(--primary),#7b5cf7)!important;color:#fff!important;border:none!important;box-shadow:0 8px 20px rgba(79,110,247,.32)}
+.dl-btn.dl-btn-ghost{background:#fff!important;color:var(--muted)!important;border:1px solid #e5e7eb!important;box-shadow:none!important}
 .dl-btn:active{transform:scale(.97)}
 </style>
 </head>
@@ -1850,11 +1850,26 @@ function resetRotation(){
 $("compass").addEventListener("click", resetRotation);
 
 
-function openDisclaimer(){
+function openDisclaimer(readonly){
   const mask=document.getElementById("disclaimer-mask");
   if(!mask) return;
   mask.classList.remove("dl-closing");
   mask.style.display="flex";
+  // 只读模式：手动点开（声明链接）时无按钮、点空白可关闭
+  const foot=mask.querySelector(".dl-foot");
+  const tip=document.getElementById("dl-decline-tip");
+  const agree=document.getElementById("dl-agree-tip");
+  if(readonly){
+    mask.dataset.readonly="1";
+    if(foot) foot.style.display="none";
+    if(tip) tip.style.display="none";
+    if(agree) agree.style.display="none";
+  }else{
+    delete mask.dataset.readonly;
+    if(foot) foot.style.display="";
+    if(tip) tip.style.display="";
+    if(agree) agree.style.display="";
+  }
 }
 function closeDisclaimer(){
   const mask=document.getElementById("disclaimer-mask");
@@ -1863,16 +1878,45 @@ function closeDisclaimer(){
   
   setTimeout(()=>{ mask.style.display="none"; mask.classList.remove("dl-closing"); }, 280);
 }
+function declineDisclaimer(){
+  // 关闭声明弹窗
+  closeDisclaimer();
+  // 停止并关闭定位：清除 watch、清空定位点、移除地图上的定位标记
+  if(gpsWatchId!==null && navigator.geolocation){ try{ navigator.geolocation.clearWatch(gpsWatchId); }catch(e){} }
+  gpsWatchId=null;
+  gpsPoint=null;
+  const g=$("svg")?.querySelector(".my-pos-g"); if(g) g.remove();
+  // 隐藏定位按钮（含其容器）
+  const fl=$("fuse-locate"); if(fl) fl.style.display="none";
+}
+let _umamiTracked=false;
+function trackConsent(){
+  // 只有用户点击“我已了解”（同意）后才动态加载 umami 并上报；拒绝则完全不加载、零上报
+  if(_umamiTracked) return;
+  _umamiTracked=true;
+  try{
+    const s=document.createElement("script");
+    s.defer=true;
+    s.src="https://cloud.umami.is/script.js";
+    s.setAttribute("data-website-id","04264cc9-21e8-4b19-8d24-83f8e22cc384");
+    s.onload=()=>{ try{ if(window.umami && typeof window.umami.track==="function") window.umami.track(); }catch(e){} };
+    document.head.appendChild(s);
+  }catch(e){}
+}
 function initDisclaimer(){
   const link=document.getElementById("disclaimer-link");
-  if(link) link.addEventListener("click", openDisclaimer);
+  if(link) link.addEventListener("click", ()=>openDisclaimer(true));
   const btn=document.getElementById("dl-confirm");
-  if(btn) btn.addEventListener("click", closeDisclaimer);
-  
+  if(btn) btn.addEventListener("click", ()=>{ closeDisclaimer(); trackConsent(); });
+  const dbtn=document.getElementById("dl-decline");
+  if(dbtn) dbtn.addEventListener("click", declineDisclaimer);
+  // 只读模式下点击遮罩空白处即可关闭（仅当无按钮时）
   const dmask=document.getElementById("disclaimer-mask");
-  if(dmask) dmask.addEventListener("click", e=>{ if(e.target===dmask) closeDisclaimer(); });
-  
-  openDisclaimer();
+  if(dmask){
+    dmask.addEventListener("click", e=>{ if(e.target===dmask && dmask.dataset.readonly==="1") closeDisclaimer(); });
+  }
+
+  openDisclaimer(false);
 }
 if(document.readyState==="loading"){
   document.addEventListener("DOMContentLoaded", initDisclaimer);
@@ -1893,10 +1937,14 @@ if(document.readyState==="loading"){
       <p>由于个人制作，地图、路线及地点信息可能存在滞后或偏差，仅供参考，切勿当真，<em>请以现实中建筑实际位置及布局为准</em>。</p>
       <p><em class="safe">出行请注意安全：请勿在行走中紧盯手机，过马路时务必走斑马线、注意来往车辆、遵守交通信号，以现场道路指示与实际路况为准。</em></p>
       <p>本站使用 Umami 进行匿名访问统计，仅用于了解访问量，不会收集任何个人信息。</p>
+      <p>定位功能仅在您的设备本地运行，不会上传或存储您的位置信息。</p>
+      <p id="dl-agree-tip" class="small" style="margin-bottom:2px">点击“我已了解”即视为已阅读并同意上方内容。</p>
+      <p id="dl-decline-tip" class="small" style="margin-top:0">点击“我不同意”将仅无法使用定位功能。</p>
       <p class="dl-contact">如涉及版权或其他权益问题，请及时联系以删除内容。</p>
     </div>
     <div class="dl-foot">
       <button id="dl-confirm" class="btn primary dl-btn">我已了解</button>
+      <button id="dl-decline" class="btn dl-btn dl-btn-ghost">我不同意</button>
     </div>
   </div>
 </div>
