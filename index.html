@@ -2,7 +2,6 @@
 <html lang="zh-CN">
 <head>
 <link rel="icon" type="image/png" sizes="256x256" href="favicon.png">
-<script defer src="https://cloud.umami.is/script.js" data-website-id="04264cc9-21e8-4b19-8d24-83f8e22cc384"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>导航</title>
@@ -268,38 +267,38 @@ const $=id=>document.getElementById(id);
 let data=null, imgURL=null, readyImg=false, routeOptions=[], selectedRouteIndex=-1;
 let sp=null, ep=null, vp=null;
 
-// —— 寻路优化参数 ——
+
 const TURN_PENALTY = 30;
 const SNAP_DIR_WEIGHT = 3.0;
 const METER_PER_PX = 0.586;
 
-// ===== GPS 无需用户校准：固定校园坐标基准 =====
-// 地图按“1 像素 = 0.586 米”，假定图片北向上。
-// 基准点采用公开的曲阜师范大学（曲阜校区）中心近似坐标；如后续拿到更精确控制点，只需修改这里。
+
+
+
 const GPS_MAP_CONFIG = {
   metersPerPixel: 0.586,
-  // 图片中心（按当前地图 2696×1780 的中心）
+  
   mapAnchorX: 1348,
   mapAnchorY: 890,
-  // 曲阜师范大学曲阜校区公开坐标近似：35.5959N, 116.95765E
+  
   latitude: 35.5959,
   longitude: 116.95765
 };
 let gpsWatchId = null;
 let gpsPoint = null;
 let gpsHeading = null;
-let deviceHeading = null; // 设备（手机）真实朝向，箭头跟随它转
+let deviceHeading = null; 
 let gpsNavigating = false;
 let gpsLastAccuracy = null;
 let gpsLastRecalc = 0;
-let gpsPendingFirstFix = false; // 点击定位后，等待首次成功回调做一次性动作（设起点+居中+弹窗）
+let gpsPendingFirstFix = false; 
 const GPS_RECALC_MIN_MS = 3500;
-const GPS_OFF_ROUTE_PX = 60; // 约35米
+const GPS_OFF_ROUTE_PX = 60; 
 
-// ===== 吃豆人导航：记录完整路线坐标，按当前位置把已走过的路线“吃掉” =====
-let navFullPts = null;        // 完整导航路线坐标点数组（[[x,y],...]，按顺序）
-let navLeftPts = null;        // 剩余路线坐标（含当前位置投影点）
-let navOnRoute = false;       // 是否正在导航（吃豆人模式激活）
+
+let navFullPts = null;        
+let navLeftPts = null;        
+let navOnRoute = false;       
 
 function gpsMetersPerDegreeLat(){ return 111132.92; }
 function gpsMetersPerDegreeLon(lat){ return 111412.84 * Math.cos(lat*Math.PI/180); }
@@ -316,13 +315,13 @@ function showGpsStatus(text,ms=3000){
   el.textContent=text;
   el.classList.add("show");
   clearTimeout(el._tm);
-  // 3 秒后自动淡出（opacity 过渡），不切换 display，保证淡出动画可看
+  
   if(ms>0) el._tm=setTimeout(()=>{ el.classList.remove("show"); }, ms);
 }
 function gpsError(err){
   const msg = err && err.code===1 ? "请允许浏览器使用定位权限" : (err && err.code===2 ? "暂时无法获取GPS位置" : "GPS定位超时，请到室外再试");
   showGpsStatus(msg,3000);
-  // 失败保持黄色（loc-wait）
+  
   const b=$("loc-btn2"); if(b) b.classList.add("loc-wait");
 }
 function startGPS(){
@@ -331,7 +330,7 @@ function startGPS(){
     navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId=null;
   }
   const b=$("loc-btn2"); if(b) b.classList.add("loc-wait");
-  gpsPendingFirstFix=true; // 本次点击：等首次成功回调做一次性动作
+  gpsPendingFirstFix=true; 
   showGpsStatus("正在获取当前位置…",0);
   gpsWatchId=navigator.geolocation.watchPosition(onGPSPosition,gpsError,{
     enableHighAccuracy:true, maximumAge:1500, timeout:12000
@@ -360,30 +359,30 @@ function onGPSPosition(pos){
   gpsLastAccuracy=gpsPoint.accuracy;
   if(c.heading!=null && Number.isFinite(c.heading) && c.heading>=0) gpsHeading=c.heading;
   drawMyPos(gpsPoint.x, gpsPoint.y);
-  // 仅“点击定位后的首次成功”做一次性动作：变蓝+居中+设起点+弹窗
+  
   if(gpsPendingFirstFix){
     gpsPendingFirstFix=false;
-    const b=$("loc-btn2"); if(b) b.classList.remove("loc-wait"); // 成功变蓝
+    const b=$("loc-btn2"); if(b) b.classList.remove("loc-wait"); 
     showGpsStatus(`定位成功 · 精度约 ${Math.round(gpsPoint.accuracy)} 米`,3000);
     centerOnGPS();
     setStartToNearestPlace();
   }
-  // GPS已获取后，把当前位置作为起点；用户输入终点后可直接开始导航。
+  
   if(gpsNavigating && ep){
     const now=Date.now();
     if(now-gpsLastRecalc>GPS_RECALC_MIN_MS){
       const routeDist=distanceToCurrentRoute(gpsPoint);
       if(routeDist>GPS_OFF_ROUTE_PX || !routeOptions.length){
-        // 偏航：重新计算路线（会重画完整路线，吃豆人从头开始）
+        
         gpsLastRecalc=now;
         calculateFromGPS(false);
       }
     }
-    // 未偏航：吃豆人——按当前位置把走过的路线隐藏
+    
     updateNavProgress();
   }
 }
-// ===== “我的位置”红色陀螺仪（替换自导航.html样式）：实心红圆 + 尖三角箭头，箭头指向设备朝向 =====
+
 function drawMyPos(px, py){
   if(!data||!readyImg) return;
   if(px==null||py==null){ if(!gpsPoint) return; px=gpsPoint.x; py=gpsPoint.y; }
@@ -397,7 +396,7 @@ function drawMyPos(px, py){
   g.innerHTML="";
   const x=px, y=py;
   const R=9, tip=16, half=7;
-  // 精度范围圈（蓝色半透明，最底层）：半径 = accuracy 换算像素，限制最大 90px
+  
   if(gpsPoint && gpsPoint.accuracy){
     const accR=Math.min(90, Math.max(8, gpsPoint.accuracy/METER_PER_PX));
     const accC=document.createElementNS("http://www.w3.org/2000/svg","circle");
@@ -406,10 +405,10 @@ function drawMyPos(px, py){
     accC.setAttribute("pointer-events","none");
     g.appendChild(accC);
   }
-  // 标签（“我的位置”文字，在精度圈之上）。
-  // data-cx/data-cy 记录圆心（旋转中心）；data-off 记录文字相对圆心的偏移距离（正上方 18px）。
-  // 文字锚点坐标不是固定的——refreshLabelRotation 会根据 rot 动态算出“圆心的屏幕正上方”
-  // 在地图坐标系中的位置，再绕文字自身反向 -rot 转正，所以文字始终水平、且始终在圆心正上方。
+  
+  
+  
+  
   const t=document.createElementNS("http://www.w3.org/2000/svg","text");
   t.setAttribute("class","my-pos-label");
   t.setAttribute("data-cx",x);t.setAttribute("data-cy",y);
@@ -418,7 +417,7 @@ function drawMyPos(px, py){
   t.setAttribute("font-size","14");t.setAttribute("font-weight","bold");t.setAttribute("fill","#e53935");t.setAttribute("stroke","#fff");t.setAttribute("stroke-width",4);t.setAttribute("paint-order","stroke");
   t.textContent="我的位置";
   g.appendChild(t);
-  // 外凸尖三角（默认朝上=北）
+  
   const arrow=document.createElementNS("http://www.w3.org/2000/svg","path");
   arrow.setAttribute("class","heading-arrow");
   arrow.setAttribute("data-cx",x);arrow.setAttribute("data-cy",y);
@@ -427,13 +426,13 @@ function drawMyPos(px, py){
   arrow.setAttribute("fill","#e53935");arrow.setAttribute("stroke","#fff");arrow.setAttribute("stroke-width","3");arrow.setAttribute("stroke-linejoin","round");
   arrow.setAttribute("pointer-events","none");
   g.appendChild(arrow);
-  // 实心红圆（带白边）
+  
   const circle=document.createElementNS("http://www.w3.org/2000/svg","circle");
   circle.setAttribute("cx",x);circle.setAttribute("cy",y);circle.setAttribute("r",R);
   circle.setAttribute("fill","#e53935");circle.setAttribute("stroke","#fff");circle.setAttribute("stroke-width","3");
   circle.setAttribute("pointer-events","none");
   g.appendChild(circle);
-  // 圆心小白点（最顶层）
+  
   const white=document.createElementNS("http://www.w3.org/2000/svg","circle");
   white.setAttribute("cx",x);white.setAttribute("cy",y);white.setAttribute("r",3.4);
   white.setAttribute("fill","#fff");white.setAttribute("pointer-events","none");
@@ -443,11 +442,11 @@ function drawMyPos(px, py){
   updateHeadingArrow();
 }
 function updateHeadingArrow(){
-  // 箭头指向设备真实朝向（deviceHeading，地图坐标系下），再由外层 transform 的
-  // rotate(rot) 把地图旋转叠加上去。屏幕上最终朝向 = deviceHeading + rot。
-  // 之前的做法是 deviceHeading - rot（企图抵消地图旋转），结果地图一旋转，
-  // 箭头就在屏幕上原地不动——去掉这个抵消即可：让箭头固定在地图坐标系内指向
-  // deviceHeading，地图转到哪它就跟着转到哪，直觉上始终正确。
+  
+  
+  
+  
+  
   const g=$("svg")?.querySelector(".my-pos-g");
   const arrow=g?.querySelector(".heading-arrow");
   if(!arrow || deviceHeading==null) return;
@@ -456,7 +455,7 @@ function updateHeadingArrow(){
   const cy=parseFloat(arrow.getAttribute("data-cy"));
   arrow.setAttribute("transform","rotate("+angle+" "+cx+" "+cy+")");
 }
-// 监听设备朝向（罗盘）：手机朝向一变，箭头跟着转
+
 function initHeading(){
   try{ window.addEventListener('deviceorientationabsolute', onDeviceOrient, true); }catch(e){}
   window.addEventListener('deviceorientation', onDeviceOrient, true);
@@ -472,12 +471,12 @@ function onDeviceOrient(ev){
   }
 }
 function renderGpsMarker(){
-  // 兼容旧调用：统一走红色陀螺仪
+  
   drawMyPos();
 }
 function distanceToCurrentRoute(p){
   if(!data)return Infinity;
-  // 优先用吃豆人导航保存的完整路线坐标（已有正确的 [x,y]）
+  
   let pts=navFullPts;
   if(!pts || !pts.length){
     if(!routeOptions.length||selectedRouteIndex<0)return Infinity;
@@ -495,11 +494,11 @@ function distanceToCurrentRoute(p){
   }
   return best;
 }
-// 吃豆人：根据当前位置把已走过的路线“吃掉”，只保留剩余路线（从当前位置投影点开始）
+
 function updateNavProgress(){
   if(!navOnRoute || !navFullPts || navFullPts.length<2 || !gpsPoint || !data || !readyImg) return;
   const P=gpsPoint;
-  // 找当前位置在完整路线折线上的最近投影点及其所在段的索引
+  
   let bestQ=null, bestIdx=0, bd=Infinity;
   for(let i=0;i<navFullPts.length-1;i++){
     const a=navFullPts[i], b=navFullPts[i+1];
@@ -508,17 +507,17 @@ function updateNavProgress(){
     if(d<bd){ bd=d; bestQ=q; bestIdx=i; }
   }
   if(!bestQ) return;
-  // 剩余路线 = [投影点] + 投影段末尾(b)之后的所有点
+  
   const remaining=[[Math.round(bestQ.x), Math.round(bestQ.y)]];
   for(let j=bestIdx+1; j<navFullPts.length; j++){
     remaining.push(navFullPts[j]);
   }
-  // 去重（投影点若与下一段起点重合则保留一次）
+  
   const clean=[];
   for(const p of remaining){ const last=clean[clean.length-1]; if(!last||last[0]!==p[0]||last[1]!==p[1]) clean.push(p); }
   navLeftPts=clean;
   const ptsStr=clean.map(p=>p.join(",")).join(" ");
-  // 更新三条 polyline
+  
   const svg=$("svg");
   const casing=svg?.querySelector(".route-casing"); if(casing) casing.setAttribute("points", ptsStr);
   const route=svg?.querySelector(".route"); if(route) route.setAttribute("points", ptsStr);
@@ -529,7 +528,7 @@ function setStartToGPS(){
   setStartToNearestPlace();
   return true;
 }
-// 起点自动设为“我的位置(最近地点+附近)”——每次点击定位都这样
+
 function setStartToNearestPlace(){
   if(!gpsPoint || !data) return;
   const s=$("start"); if(!s) return;
@@ -550,24 +549,24 @@ function calculateFromGPS(auto=false){
 }
 
 
-// ===== 缩放/平移/旋转状态 =====
-// 变换统一为：translate(tx,ty) rotate(rot) scale(scale) translate(-cx,-cy)
-// 其中 (cx,cy) 恒为地图中心 (mapW/2, mapH/2)。旋转/缩放都围绕地图中心，简单且不会飞。
+
+
+
 let scale=1, tx=0, ty=0;
 let rot=0;
 let baseScale=1;
 const MIN_SCALE=0.1, MAX_SCALE=8;
 
-// 地图逻辑尺寸（加载后由 naturalWidth/Height 赋值）
+
 let mapW=0, mapH=0;
-// 主连通分量（最大的节点集合），用于吸附时排除孤岛节点
+
 let mainComponent=null;
-// LOD：缩略图/高清图切换状态
+
 let useLowRes=false;
-const LOD_LOW=0.85;   // scale 低于此值切到缩略图
-const LOD_HIGH=1.15;  // scale 高于此值切到高清图（迟滞区间避免反复横跳）
-let inited=false;     // 地图尺寸是否已初始化（LOD 切图时防止重复初始化）
-// 地图中心（旋转/缩放中心）
+const LOD_LOW=0.85;   
+const LOD_HIGH=1.15;  
+let inited=false;     
+
 function mapCx(){ return mapW/2; }
 function mapCy(){ return mapH/2; }
 
@@ -585,30 +584,30 @@ function applyTransform(){
   updateHeadingArrow();
 }
 
-// LOD 已停用（缩略图切换会引入切图闪 + 阈值对不上）。只显示高清图，从别处解决闪烁。
+
 function updateLOD(){
   return;
 }
 
-// 罗盘：外圈（东南西北位置）随地图旋转，但每个字反向转保持正着（不歪）
+
 function updateCompass(){
   const compass=$("compass");
   if(!compass) return;
   const ring=compass.querySelector(".cp-ring");
   if(ring) ring.style.transform = `rotate(${rot}deg)`;
-  // 每个方向字：先保持定位（translate），再绕自身中心反向旋转保持正立
+  
   const n=$("compass")?.querySelector(".cp-n"); if(n) n.style.transform=`translateX(-50%) rotate(${-rot}deg)`;
   const s=$("compass")?.querySelector(".cp-s"); if(s) s.style.transform=`translateX(-50%) rotate(${-rot}deg)`;
   const e=$("compass")?.querySelector(".cp-e"); if(e) e.style.transform=`translateY(-50%) rotate(${-rot}deg)`;
   const w=$("compass")?.querySelector(".cp-w"); if(w) w.style.transform=`translateY(-50%) rotate(${-rot}deg)`;
 }
 
-// 边界限制已关闭
+
 function clampTransform(){
   return;
 }
 
-// 缓存地名标签引用与坐标，避免每次手势都 querySelectorAll（闪烁主因）
+
 let labelCache=null;
 function refreshLabelRotation(){
   if(!data||!readyImg) return;
@@ -616,22 +615,22 @@ function refreshLabelRotation(){
     labelCache=Array.from(document.querySelectorAll("#svg .place-label")).map(t=>{
       const x=parseFloat(t.getAttribute("x")), y=parseFloat(t.getAttribute("y"));
       const dx=parseFloat(t.getAttribute("data-dx")), dy=parseFloat(t.getAttribute("data-dy"));
-      // 记录文字相对标点的“固定偏移”（rot=0 时的相对位置，如标点右侧 +10,+4）
+      
       const ox=isFinite(dx)?(x-dx):null, oy=isFinite(dy)?(y-dy):null;
       return {el:t, dx, dy, ox, oy};
     });
   }
-  // 关键：所有标签都画在被外层 rotate(rot)（顺时针）旋转的 SVG 里。
-  // 要“文字相对标点方位固定 + 文字自身水平”，做法与“我的位置”一致：
-  //   1) 把文字锚点放在“经反向旋转后对应屏幕固定方位”的地图坐标上：
-  //        mx = dx + ox·cos + oy·sin ， my = dy - ox·sin + oy·cos
-  //      （其中 ox,oy 是 rot=0 时文字相对标点的固定偏移）
-  //   2) 单次 rotate(-rot) 绕文字自身转正，文字即保持水平。
+  
+  
+  
+  
+  
+  
   const rad=rot*Math.PI/180, cos=Math.cos(rad), sin=Math.sin(rad);
   for(const L of labelCache){
     if(!rot){
       L.el.removeAttribute("transform");
-      // 复位时恢复原始锚点
+      
       if(isFinite(L.dx)&&isFinite(L.ox)) L.el.setAttribute("x", L.dx + L.ox);
       if(isFinite(L.dy)&&isFinite(L.oy)) L.el.setAttribute("y", L.dy + L.oy);
       continue;
@@ -643,16 +642,16 @@ function refreshLabelRotation(){
       L.el.setAttribute("y", my);
       L.el.setAttribute("transform", `rotate(${-rot} ${mx} ${my})`);
     } else {
-      // 无标点信息的老标签：仅转正文字
+      
       const x=parseFloat(L.el.getAttribute("x")), y=parseFloat(L.el.getAttribute("y"));
       if(isFinite(x)&&isFinite(y)) L.el.setAttribute("transform", `rotate(${-rot} ${x} ${y})`);
     }
   }
-  // “我的位置”标签：始终停在箭头（圆心）正上方、文字保持水平。
-  // 关键：文字锚点坐标不是固定的。外层把 SVG 顺时针转了 rot，要使文字始终在圆心的
-  // “屏幕正上方”，就要把锚点放在地图坐标系里“经反向旋转后对应屏幕上方”的位置：
-  //   mx = cx - off·sin(rot)，my = cy - off·cos(rot)
-  // 然后绕文字自身 (mx,my) 反向 -rot 转正，文字即保持水平。
+  
+  
+  
+  
+  
   const myLabel=$("svg")?.querySelector(".my-pos-label");
   if(myLabel){
     const cx=parseFloat(myLabel.getAttribute("data-cx"));
@@ -669,20 +668,20 @@ function refreshLabelRotation(){
     }
   }
 }
-// 地名重绘后需重建缓存
+
 function invalidateLabelCache(){ labelCache=null; }
 
 function zoomAt(cx,cy,newScale){
   newScale=Math.max(MIN_SCALE,Math.min(MAX_SCALE,newScale));
   const k=newScale/scale;
-  // 围绕屏幕点(cx,cy)缩放：tx/ty 是地图中心在屏幕上的位置
+  
   tx = cx - k*(cx-tx);
   ty = cy - k*(cy-ty);
   scale=newScale;
   applyTransform();
 }
 
-// 屏幕坐标 -> 地图坐标（逆变换），旋转中心为地图中心
+
 function screenToMap(sx, sy){
   const cx=mapCx(), cy=mapCy();
   const dx=sx-tx, dy=sy-ty;
@@ -693,21 +692,21 @@ function screenToMap(sx, sy){
   return { x: cx + rx/scale, y: cy + ry/scale };
 }
 
-// —— 触摸手势：单指拖拽 + 双指缩放/旋转 ——
+
 let pointers=new Map();
 let lastDist=0, lastMid={x:0,y:0}, lastAngle=0;
 
 $("viewport").addEventListener('pointerdown',e=>{
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   $("transform").classList.remove("animate");
-  // 点击地图（不在搜索框/联想框内）时，底部导航栏滑回
+  
   const tgt=e.target;
   if(!(tgt&&(tgt.id==='loc-input'||tgt.id==='loc-btn'||tgt.closest('#loc-suggest')))){
     const bb=$("bottombar"); if(bb){ bb.style.transition=''; bb.classList.remove("dock-out"); }
     const inp=$("loc-input"); if(inp){ try{inp.blur()}catch{} }
   }
   if(pointers.size===1){
-    // 单指
+    
   }else if(pointers.size===2){
     const pts=[...pointers.values()];
     lastDist=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
@@ -723,7 +722,7 @@ $("viewport").addEventListener('pointermove',e=>{
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
 
   if(pointers.size===1){
-    // 单指拖拽平移
+    
     tx+=dx; ty+=dy;
     applyTransform();
   }else if(pointers.size===2){
@@ -731,23 +730,23 @@ $("viewport").addEventListener('pointermove',e=>{
     const d=Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
     const mid={x:(pts[0].x+pts[1].x)/2, y:(pts[0].y+pts[1].y)/2};
     const ang=Math.atan2(pts[1].y-pts[0].y, pts[1].x-pts[0].x);
-    // 双指缩放：围绕两指中点（保持中点对应地图点不动）
+    
     if(lastDist>0 && d>0){
       const ns=Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale*(d/lastDist)));
       const m=screenToMap(mid.x, mid.y);
       const cx=mapCx(), cy=mapCy();
       const rad=rot*Math.PI/180;
       const cos=Math.cos(rad), sin=Math.sin(rad);
-      // 地图中心相对锚点的偏移
+      
       const ox=(cx-m.x), oy=(cy-m.y);
       scale=ns;
-      // 让锚点 m 保持映射到屏幕 mid：tx = mid - R(rot)*S*(m - center)
+      
       const rx=(m.x-cx)*ns, ry=(m.y-cy)*ns;
       const rxr=rx*cos - ry*sin, ryr=rx*sin + ry*cos;
       tx=mid.x - rxr;
       ty=mid.y - ryr;
     }
-    // 双指旋转：围绕两指中点
+    
     if(lastAngle!==null){
       let da=ang-lastAngle;
       while(da>Math.PI) da-=2*Math.PI;
@@ -778,7 +777,7 @@ $("viewport").addEventListener('pointerup',endPointer);
 $("viewport").addEventListener('pointercancel',endPointer);
 $("viewport").addEventListener('pointerleave',e=>{ if(pointers.has(e.pointerId)) endPointer(e); });
 
-// 鼠标滚轮缩放（桌面）
+
 $("viewport").addEventListener('wheel',e=>{
   e.preventDefault();
   const r=$("viewport").getBoundingClientRect();
@@ -787,25 +786,25 @@ $("viewport").addEventListener('wheel',e=>{
 
 function resetView(silent){
   scale=baseScale; rot=0;
-  // 复位时让地图居中：地图中心对准视口中心
+  
   const vw=$("viewport").clientWidth, vh=$("viewport").clientHeight;
   tx=vw/2;
   ty=vh/2;
   const el=$("transform");
   if(silent){
-    // 初始化时瞬时定位，不加过渡动画，避免多次 reset 叠加导致打开时闪烁
+    
     el.classList.remove("animate"); clearTimeout(el._animTm);
     applyTransform();
     return;
   }
-  // 复位时加过渡动画
+  
   el.classList.add("animate");
   applyTransform();
   clearTimeout(el._animTm);
   el._animTm=setTimeout(()=>el.classList.remove("animate"), 550);
 }
 
-// ===== 地图加载 =====
+
 $("imgFile").onchange=e=>{
   const f=e.target.files[0]; if(!f)return;
   if(imgURL)URL.revokeObjectURL(imgURL);
@@ -815,14 +814,14 @@ $("imgFile").onchange=e=>{
 $("map").onload=()=>{
   readyImg=true;
   $("wrap").hidden=false;
-  // 尺寸初始化只做一次（用高清图尺寸），LOD 切图时不重复初始化，避免死循环
+  
   if(!inited){
     inited=true;
     const w=$("map").naturalWidth,h=$("map").naturalHeight;
     mapW=w; mapH=h;
     $("wrap").style.width=w+"px";$("wrap").style.height=h+"px";
     $("svg").setAttribute("width",w);$("svg").setAttribute("height",h);
-    // 自动适配：初始默认放大到校园局部（非整图），用户可再缩放
+    
     const vw=$("viewport").clientWidth, vh=$("viewport").clientHeight;
     const fit=Math.min(vw/w, vh/h);
     baseScale=fit*2.2;
@@ -830,9 +829,9 @@ $("map").onload=()=>{
     resetView(true);
     $("wrap").hidden=false;
   }
-  // 地图就绪后统一渲染（此时 data 可能已加载或稍后加载，renderIfReady 会兜底）
+  
   renderIfReady();
-  // iframe 首次加载时视口尺寸可能尚未定型，多次延迟居中，确保地图不偏左上角（静默定位，不触发过渡动画）
+  
   [100, 300, 600].forEach((ms)=>{
     setTimeout(()=>{ if(inited) resetView(true); }, ms);
   });
@@ -852,8 +851,8 @@ function loadJSONText(txt){
   }
 }
 
-// 统一就绪渲染：地图图片和 JSON 数据都加载完成后，再完整渲染一次，
-// 避免时序竞争导致地标/文字漏渲染
+
+
 function renderIfReady(){
   if(readyImg && data) renderBase();
 }
@@ -866,24 +865,24 @@ $("jsonFile").onchange=e=>{
 };
 
 function autoLoad(){
-  // 优先读取页面内联数据（单文件方案，file:// 与 GitHub Pages 均可用）
+  
   const inline=document.getElementById("mapdata");
   if(inline && inline.textContent && inline.textContent.trim()){
     loadJSONText(inline.textContent);
   } else {
-    // 兜底：仍尝试从外部 JSON 加载
+    
     fetch('campus_map.json',{cache:'no-store'})
       .then(r=>{ if(!r.ok) throw new Error('json 404'); return r.text(); })
       .then(txt=>{ loadJSONText(txt); })
-      .catch(()=>{/* 等手动导入 */});
+      .catch(()=>{});
   }
   const img=new Image();
   img.onload=()=>{ imgURL='campus.webp'; $("map").src='campus.webp'; };
-  img.onerror=()=>{ /* 图片加载失败时仍显示画布 */ };
+  img.onerror=()=>{  };
   img.src='campus.webp';
 }
 autoLoad();
-// 初始化：启动设备朝向监听 + 定位按钮初始黄色
+
 initHeading();
 (function(){
   const b=$("loc-btn2"); if(b) b.classList.add("loc-wait");
@@ -891,19 +890,19 @@ initHeading();
 
 function fillPlaces(){
   if(!data || !data.places.length) return;
-  // 初始化联想搜索（自建下拉，替代原 datalist）
+  
   setupSuggest($("start"), $("sg-start"));
   setupSuggest($("end"), $("sg-end"));
   setupSuggest($("via"), $("sg-via"));
-  // 初始化顶部地点搜索栏
+  
   setupLocSearch();
 }
 
-// —— 数字 ↔ 中文数字 映射（联想用）——
+
 const CN_NUM = {'0':'零','1':'一','2':'二','3':'三','4':'四','5':'五','6':'六','7':'七','8':'八','9':'九'};
 const AR_NUM = {'零':'0','一':'1','二':'2','三':'3','四':'4','五':'5','六':'6','七':'7','八':'8','九':'9'};
 
-// —— 汉字 → 拼音首字母（覆盖校园地名常用字，按需补充）——
+
 const PY_INIT = {
 '曲':'q','阜':'f','师':'s','范':'f','大':'d','学':'x','校':'x','区':'q','图':'t','书':'s','馆':'g',
 '宿':'s','舍':'s','公':'g','寓':'y','楼':'l','男':'n','生':'s','研':'y','究':'j','教':'j','工':'g',
@@ -924,7 +923,7 @@ const PY_INIT = {
 '所':'s','教':'j','育':'y'
 };
 
-// 汉字串 → 拼音首字母串（无法映射的字保留原字）
+
 function toPinyinInitials(s){
   let out='';
   for(const ch of s){
@@ -933,10 +932,10 @@ function toPinyinInitials(s){
   return out;
 }
 
-// 生成某段文本的所有“可匹配变体”（用于 3=三 这种同义联想）
+
 function genVariants(s){
   const v=new Set([s]);
-  // 数字 ↔ 中文数字
+  
   let replaced='';
   for(const ch of s){
     if(CN_NUM[ch]) replaced+=CN_NUM[ch];
@@ -947,9 +946,9 @@ function genVariants(s){
   return [...v];
 }
 
-// —— 地点别名映射：输入别名 -> 正式名称 ——
+
 const ALIAS = [
-  // 西区数字公寓 -> 西校区X号学生公寓
+  
   ['西区一号','西校区一号学生公寓'],['西区二号','西校区二号学生公寓'],['西区三号','西校区三号学生公寓'],
   ['西区四号','西校区四号学生公寓'],['西区五号','西校区五号学生公寓'],['西区六号','西校区六号学生公寓'],
   ['西区七号','西校区七号学生公寓'],['西区八号','西校区八号学生公寓'],['西区九号','西校区九号学生公寓'],
@@ -959,7 +958,7 @@ const ALIAS = [
   ['西一','西校区一号学生公寓'],['西二','西校区二号学生公寓'],['西三','西校区三号学生公寓'],
   ['西四','西校区四号学生公寓'],['西五','西校区五号学生公寓'],['西六','西校区六号学生公寓'],
   ['西七','西校区七号学生公寓'],['西八','西校区八号学生公寓'],['西九','西校区九号学生公寓'],
-  // 常用缩写
+  
   ['大活','大学生活动中心'],['大活中心','大学生活动中心'],
   ['tsg','西校区图书馆'],['TSG','西校区图书馆'],['图书馆','西校区图书馆'],
   ['西图','西校区图书馆'],['东图','东校区图书馆'],
@@ -971,7 +970,7 @@ const ALIAS = [
   ['新图','东校区图书馆'],
 ];
 
-// 把输入转换为正式地点名（命中别名则返回正式名）
+
 function aliasToName(q){
   if(!q) return q;
   for(const [a,b] of ALIAS){
@@ -980,26 +979,26 @@ function aliasToName(q){
   return q;
 }
 
-// 判断地名是否匹配输入（支持连续包含 + 非连续子序列 + 同义 + 拼音首字母 + 别名）
+
 function matchPlace(name, query){
   const q=query.toLowerCase();
-  // 0) 别名：若输入命中别名且指向本地点，直接匹配
+  
   const aliasName=aliasToName(query);
   if(aliasName!==query && name.toLowerCase()===aliasName.toLowerCase()) return true;
-  // 1) 直接包含 / 数字中文变体
+  
   const variants=genVariants(name);
   for(const v of variants){
     if(v.toLowerCase().includes(q)) return true;
   }
-  // 2) 拼音首字母匹配：输入全为字母时
+  
   const py=toPinyinInitials(name).toLowerCase();
   if(py.includes(q)) return true;
-  // 3) 非连续子序列匹配：查询每个字按顺序出现在地名中（中间可隔字）
-  //    例如“大活”可匹配“大学生活动中心”
+  
+  
   return isSubsequence(q, name.toLowerCase());
 }
 
-// 判断 q 是否为 s 的子序列（字符按顺序出现，可跳过中间字符）
+
 function isSubsequence(q, s){
   let i=0;
   for(let j=0; j<s.length && i<q.length; j++){
@@ -1008,29 +1007,29 @@ function isSubsequence(q, s){
   return i===q.length;
 }
 
-// 在名称中找出要标蓝的区间（返回区间数组 [[s,e],...]，支持非连续子序列多点标蓝）
+
 function findHighlight(name, query){
   const q=query.toLowerCase();
   const variants=genVariants(name);
-  // 1) 连续包含 / 数字变体匹配
+  
   for(const v of variants){
     const idx=v.toLowerCase().indexOf(q);
     if(idx>=0 && v.length===name.length) return [[idx, idx+q.length]];
   }
-  // 2) 拼音首字母匹配：定位对应的汉字区间
+  
   const py=toPinyinInitials(name).toLowerCase();
   const pidx=py.indexOf(q);
   if(pidx>=0) return [[pidx, pidx+q.length]];
-  // 3) 非连续子序列匹配：每个匹配字的区间分别标蓝
+  
   const ranges=subseqRanges(q, name.toLowerCase());
   if(ranges) return ranges;
-  // 默认：直接找原始名称
+  
   const idx=name.toLowerCase().indexOf(q);
   if(idx>=0) return [[idx, idx+q.length]];
   return null;
 }
 
-// 找 q 作为 s 子序列时每个字符的位置（返回区间数组）
+
 function subseqRanges(q, s){
   const ranges=[];
   let i=0;
@@ -1043,7 +1042,7 @@ function subseqRanges(q, s){
   return i===q.length ? ranges : null;
 }
 
-// 高亮：拼接 HTML，把多个区间标蓝
+
 function highlightName(name, ranges){
   if(!ranges || !ranges.length) return esc(name);
   let html='', last=0;
@@ -1078,7 +1077,7 @@ function setupSuggest(input, box){
   input.addEventListener("input",()=>{ activeIdx=-1; render(); });
   input.addEventListener("focus",()=>{ render(); });
   input.addEventListener("blur",()=>{ setTimeout(()=>box.classList.remove("show"),150); });
-  // 阻止弹窗内的滚动手势穿透到底层地图，保证联想列表能独立滑动
+  
   box.addEventListener("touchmove",e=>{ e.stopPropagation(); }, {passive:true});
   box.addEventListener("wheel",e=>{ e.stopPropagation(); });
   input.addEventListener("keydown",e=>{
@@ -1108,10 +1107,10 @@ function resolvePlace(inputVal){
   return byId||null;
 }
 
-// ===== 图论 =====
+
 function nodeMap(){ const m=new Map(); data.nodes.forEach(n=>m.set(n.id,n)); return m; }
 
-// 计算最大连通分量（主路网），用于吸附时排除孤岛节点
+
 function computeMainComponent(){
   if(!data) return;
   const g=graph();
@@ -1152,7 +1151,7 @@ function graph(){
   return g;
 }
 
-// 计算点到线段(ax,ay)-(bx,by)的最近投影点（含线段端点约束），返回投影点坐标
+
 function projectPointToSegment(px, py, ax, ay, bx, by){
   const dx=bx-ax, dy=by-ay;
   const len2=dx*dx+dy*dy;
@@ -1162,7 +1161,7 @@ function projectPointToSegment(px, py, ax, ay, bx, by){
   return {x:ax+t*dx, y:ay+t*dy};
 }
 
-// 吸附：把点投影到最近的道路「边」的线段上，返回边的任意一点（而非仅节点）
+
 function nearestEdgePoint(p){
   if(!data || !data.edges || !data.nodes) return null;
   const nm=nodeMap();
@@ -1170,7 +1169,7 @@ function nearestEdgePoint(p){
   for(const e of data.edges){
     const a=nm.get(e.from), b=nm.get(e.to);
     if(!a||!b) continue;
-    // 排除孤岛边（任一端不在主连通分量内）
+    
     if(mainComponent && (!mainComponent.has(a.id) || !mainComponent.has(b.id))) continue;
     const proj=projectPointToSegment(p.x, p.y, a.x, a.y, b.x, b.y);
     const d=Math.hypot(p.x-proj.x, p.y-proj.y);
@@ -1182,20 +1181,20 @@ function nearestEdgePoint(p){
 function nearestNode(place, toward=null){
   let best=null,bd=Infinity;
   for(const n of data.nodes){
-    // 跳过孤岛节点（不在主连通分量里的节点），避免吸附到无法连通路网的孤岛
+    
     if(mainComponent && !mainComponent.has(n.id)) continue;
     const d=Math.hypot(place.x-n.x,place.y-n.y);
     let score=d;
     if(toward){
-      const vx=n.x-place.x, vy=n.y-place.y;      // 指向候选节点
-      const tx=toward.x-place.x, ty=toward.y-place.y; // 指向终点
+      const vx=n.x-place.x, vy=n.y-place.y;      
+      const tx=toward.x-place.x, ty=toward.y-place.y; 
       const dot=vx*tx+vy*ty;
       const vl=Math.hypot(vx,vy), tl=Math.hypot(tx,ty);
       if(vl>1e-6 && tl>1e-6){
         const cos=Math.max(-1,Math.min(1,dot/(vl*tl)));
-        // 线性方向惩罚：dev=(1-cos)/2，同向0、垂直0.5、背向1。
-        // 权重 3.0 时，偏离目标方向的“侧后方”点会被明显抬高，
-        // 从而更坚决地选朝向目标方向的节点，避免路线开头就拐错方向。
+        
+        
+        
         const dev = (1 - cos) / 2;
         score = d * (1 + SNAP_DIR_WEIGHT * dev);
       }
@@ -1306,19 +1305,19 @@ function edgeKey(a,b){ return String(a)<String(b)?String(a)+"_"+String(b):String
 function pathKey(p){return p.join(">")}
 function pathPrefix(a,b){ if(a.length<b.length)return false; for(let i=0;i<b.length;i++)if(a[i]!==b[i])return false; return true; }
 
-// ===== 路线计算与渲染 =====
+
 function calculate(){
   if(!data||!readyImg)return toast("正在加载地图，请稍候…");
   sp = resolvePlace($("start").value);
   ep=resolvePlace($("end").value);
-  vp=resolvePlace($("via").value);   // 途经点（可选）
+  vp=resolvePlace($("via").value);   
   if(!sp||!ep)return toast("请正确输入起点和终点名称");
   if(sp.id===ep.id)return toast("起点和终点不能相同");
   if(vp && (vp.id===sp.id||vp.id===ep.id))return toast("途经点不能与起点或终点相同");
   $("end").value=ep.name;
   if(vp) $("via").value=vp.name;
   $("start").value=sp.name;
-  // 若起点是“我的位置”（实时定位），进入 GPS 吃豆人导航模式
+  
   if(sp && sp.type==='gps'){
     gpsNavigating=true;
   }
@@ -1326,17 +1325,17 @@ function calculate(){
   const s=nearestNode(sp, ep), e=nearestNode(ep, sp);
   if(!s.node||!e.node)return toast("没有道路节点，无法导航");
 
-  // 途经点吸附
+  
   const v = vp ? nearestNode(vp, ep) : null;
 
-  // 显示计算等待条（只在点击“开始导航”后显示）
+  
   const calcEl=$("calcloading"); if(calcEl){ calcEl.classList.add("show"); }
 
-  // 用短延迟体现“AI 计算中”，实际寻路是同步的瞬时完成
+  
   setTimeout(()=>{
     let fullPath=null, totalDist=0;
     if(v && v.node){
-      // 两段：起点→途经点，途经点→终点
+      
       const seg1=findAlternativeRoutes(s.node.id, v.node.id, 1);
       const seg2=findAlternativeRoutes(v.node.id, e.node.id, 1);
       if(!seg1.length || !seg2.length){
@@ -1344,7 +1343,7 @@ function calculate(){
         toast("无法到达：途经点未连通路网");
         return;
       }
-      // 拼接两段（去重逢接口点）
+      
       const p1=seg1[0].path;
       const p2=seg2[0].path.slice(1);
       fullPath=p1.concat(p2);
@@ -1389,22 +1388,22 @@ function drawRoute(path,sn,en,vn){
   pts.push([en.x,en.y],[ep.x,ep.y]);
   const clean=[];
   for(const p of pts){ const last=clean[clean.length-1]; if(!last||last[0]!==p[0]||last[1]!==p[1])clean.push(p); }
-  // 保存完整路线点（供吃豆人导航按当前位置裁剪）
+  
   navFullPts=clean;
   navLeftPts=clean;
   navOnRoute=true;
   const points=clean.map(p=>p.join(",")).join(" ");
-  // 底层白色描边（描边）
+  
   const casing=document.createElementNS("http://www.w3.org/2000/svg","polyline");
   casing.setAttribute("points",points);
   casing.setAttribute("class","route-casing");
   svg.appendChild(casing);
-  // 中层红色路径
+  
   const poly=document.createElementNS("http://www.w3.org/2000/svg","polyline");
   poly.setAttribute("points",points);
   poly.setAttribute("class","route");
   svg.appendChild(poly);
-  // 上层流动箭头条纹（白色虚线，沿路径方向动）
+  
   const arrow=document.createElementNS("http://www.w3.org/2000/svg","polyline");
   arrow.setAttribute("points",points);
   arrow.setAttribute("class","route-arrow");
@@ -1415,20 +1414,20 @@ function drawRoute(path,sn,en,vn){
     ci.setAttribute("fill",c);ci.setAttribute("stroke","#fff");ci.setAttribute("stroke-width","3");
     svg.appendChild(ci);
   });
-  // 途经点标记（橙色）
+  
   if(vp && vn){
     const ci=document.createElementNS("http://www.w3.org/2000/svg","circle");
     ci.setAttribute("cx",vp.x);ci.setAttribute("cy",vp.y);ci.setAttribute("r",10);
     ci.setAttribute("fill","#f59e0b");ci.setAttribute("stroke","#fff");ci.setAttribute("stroke-width","3");
     svg.appendChild(ci);
   }
-  // 将地名文字提升到最顶层，避免被路线盖住
+  
   bringLabelsToTop();
   renderGpsMarker();
   focusOnRoute(clean);
 }
 
-// 把地名标签和地标点重新 append 到 SVG 末尾，使其始终显示在路线之上
+
 function bringLabelsToTop(){
   const svg=$("svg");
   if(!svg) return;
@@ -1436,7 +1435,7 @@ function bringLabelsToTop(){
   els.forEach(t=>svg.appendChild(t));
 }
 
-// 缩放/平移视图，使整条路线完整可见且居中
+
 function focusOnRoute(pts){
   if(!pts.length) return;
   let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
@@ -1445,16 +1444,16 @@ function focusOnRoute(pts){
     if(y<minY)minY=y; if(y>maxY)maxY=y;
   }
 
-  // 计算路线方向角（起点 -> 终点），规整到最近 90° 倍数，地图保持横平竖直
-  // 结果限制在 -90 ~ 90 之间，永远不旋转到 180°/270°，避免地图颠倒
+  
+  
   const sx=pts[0][0], sy=pts[0][1];
   const ex=pts[pts.length-1][0], ey=pts[pts.length-1][1];
   const dx=ex-sx, dy=ey-sy;
-  const curAngle=Math.atan2(dy,dx)*180/Math.PI;   // -180~180，0=右
-  let rawRot = -90 - curAngle;                     // 让“起点->终点”方向朝上(-90)
-  rot = Math.round(rawRot / 90) * 90;              // 规整到 90° 倍数
-  // 限制在 [-90, 90]：如果算出来是 180 或 -180，等价于 0；±270 等价于 ∓90
-  rot = ((rot % 360) + 360) % 360;                 // 0~360
+  const curAngle=Math.atan2(dy,dx)*180/Math.PI;   
+  let rawRot = -90 - curAngle;                     
+  rot = Math.round(rawRot / 90) * 90;              
+  
+  rot = ((rot % 360) + 360) % 360;                 
   if(rot === 270) rot = -90;
   else if(rot === 180) rot = 0;
 
@@ -1462,18 +1461,18 @@ function focusOnRoute(pts){
   const padX=36, padTop=60, padBottom=110;
   const bw=Math.max(maxX-minX, 1), bh=Math.max(maxY-minY, 1);
   let s=Math.min((vw-padX*2)/bw, (vh-padTop-padBottom)/bh);
-  // 聚焦缩放上限：两个地点很近时，也别放大过头
+  
   const FOCUS_MAX=2.5;
   s=Math.max(MIN_SCALE, Math.min(FOCUS_MAX, s));
   scale=s;
 
-  // 路线包围盒中心（地图坐标）
+  
   const routeCx=(minX+maxX)/2;
   const routeCy=(minY+maxY)/2;
 
-  // 目标：让路线中心映射到屏幕可用区域中心。
-  // 变换：screen = translate(tx,ty) rotate(rot) scale(s) translate(-mapCenter)
-  // 路线中心经变换后的屏幕位置 = (tx,ty) + R(rot)·S(s)·(routeCenter - mapCenter)
+  
+  
+  
   const targetSx=vw/2;
   const targetSy=padTop + (vh-padTop-padBottom)/2;
   const cx=mapCx(), cy=mapCy();
@@ -1483,7 +1482,7 @@ function focusOnRoute(pts){
   const rxr=rx*cos - ry*sin, ryr=rx*sin + ry*cos;
   tx = targetSx - rxr;
   ty = targetSy - ryr;
-  // 聚焦路线时加过渡动画
+  
   const el=$("transform");
   el.classList.add("animate");
   applyTransform();
@@ -1491,39 +1490,39 @@ function focusOnRoute(pts){
   el._animTm=setTimeout(()=>el.classList.remove("animate"), 550);
 }
 
-// ===== 右上角地点搜索 + 确认放大 =====
-// 搜索评分：让精确匹配/别名优先于子序列模糊匹配
+
+
 function searchScore(name, query){
   const q=query.toLowerCase();
   const n=name.toLowerCase();
   if(!q) return 0;
-  // 别名精确命中：最高分
+  
   for(const [a,b] of ALIAS){
     if((q===a.toLowerCase()) && n===b.toLowerCase()) return 10000;
   }
-  // 完全相等
+  
   if(n===q) return 9000;
-  // 直接包含：越靠前、越短越优
+  
   const idx=n.indexOf(q);
   if(idx>=0) return 5000 - idx - name.length*0.1;
-  // 前缀包含（“西”匹配所有西开头地点，但子序列会把它放大所以给较低分）
+  
   if(n.startsWith(q)) return 3000 - name.length*0.1;
-  // 拼音首字母
+  
   const py=toPinyinInitials(name).toLowerCase();
   if(py.includes(q)) return 2000 - name.length*0.1;
-  // 子序列（最低优先级）
+  
   if(isSubsequence(q, n)) return 1000 - name.length*0.1;
   return 0;
 }
 
-// ===== 顶部地点搜索 + 确认放大 =====
+
 function setupLocSearch(){
   const input=$("loc-input");
   const box=$("loc-suggest");
   if(!input||!box) return;
   let activeIdx=-1;
 
-  // 搜索联想（与底部导航栏同一套 matchPlace 宽松匹配，列出全部相关结果）
+  
   function render(){
     const q=input.value.trim();
     if(!q){ box.classList.remove("show"); return; }
@@ -1555,7 +1554,7 @@ function setupLocSearch(){
   input.addEventListener("input",()=>{ activeIdx=-1; render(); });
   input.addEventListener("focus",()=>{
     render();
-    // 聚焦搜索框时，底部导航栏和定位按钮立即移出（不等键盘弹起，避免被顶起来闪一下）
+    
     const bb=$("bottombar"); if(bb){ bb.style.transition='none'; bb.classList.add("dock-out"); }
   });
   input.addEventListener("blur",()=>{
@@ -1597,13 +1596,13 @@ function setupLocSearch(){
   }
 }
 
-// 放大地图到指定地点（复用 focusOnRoute 的坐标变换模型）
+
 function gotoPlace(p){
   if(!p||!data||!readyImg||!mapW) return;
   const vw=$("viewport").clientWidth, vh=$("viewport").clientHeight;
-  // 保持当前旋转，或复位为 0 保持正北朝上
+  
   rot = 0;
-  // 放大倍数：看清该地点但不过度放大
+  
   const s = 1.2;
   scale = s;
   const cx=mapCx(), cy=mapCy();
@@ -1617,7 +1616,7 @@ function gotoPlace(p){
   applyTransform();
   clearTimeout(el._animTm);
   el._animTm=setTimeout(()=>el.classList.remove("animate"),550);
-  // 手动搜索定位到某地点后，定位按钮回到黄色（表示不再是“实时定位”状态）
+  
   const b=$("loc-btn2"); if(b) b.classList.add("loc-wait");
 }
 
@@ -1627,7 +1626,7 @@ function fmtDist(px){
   return Math.round(m)+" 米";
 }
 
-// ===== 基础渲染（只显示地标，不显示底层路网）=====
+
 function renderBase(){
   if(!data||!readyImg)return;
   const svg=$("svg");svg.innerHTML="";
@@ -1636,7 +1635,7 @@ function renderBase(){
     g.setAttribute("cx",p.x);g.setAttribute("cy",p.y);g.setAttribute("r","7");g.setAttribute("class","place-dot");
     svg.appendChild(g);
     const t=document.createElementNS("http://www.w3.org/2000/svg","text");
-    // 文字边界适配：靠近地图右边缘时文字放左边，否则放右边
+    
     const labelLeft = p.x + 10;
     const labelRight = (mapW ? mapW : 2696) - 10;
     const anchor = (labelLeft > labelRight - 60) ? "end" : "start";
@@ -1645,13 +1644,13 @@ function renderBase(){
     t.setAttribute("y", p.y + 4);
     t.setAttribute("text-anchor", anchor);
     t.setAttribute("class","place-label");
-    // 记录所属标点（圆心）坐标，供 refreshLabelRotation 做“绕标点转”
+    
     t.setAttribute("data-dx", p.x);
     t.setAttribute("data-dy", p.y);
     t.textContent=p.name;
     svg.appendChild(t);
   });
-  // 地名重绘后需重建反旋转缓存
+  
   invalidateLabelCache();
   renderScalebar();
   renderGpsMarker();
@@ -1667,14 +1666,14 @@ function renderScalebar(){
   let barPx=chosenM/METER_PER_PX;
   if(barPx>maxPx){ barPx=maxPx; chosenM=maxPx*METER_PER_PX; }
   const label=chosenM>=1000?(chosenM/1000)+" 公里":chosenM+" 米";
-  // 用缓存避免每次手势都重建 DOM（防闪烁）
+  
   if(sb._key!==label){
     sb._key=label;
     sb.innerHTML='<div class="bar" style="width:'+barPx.toFixed(0)+'px"></div><div class="num">'+label+'</div>';
   }
 }
 
-// 监听主应用广播的导航消息（AI 问答里点“导航到这里”触发）
+
 window.addEventListener("message", function(ev){
   var d=ev.data;
   if(d && d.type==="NAVIGATE_TO" && typeof d.name==="string"){
@@ -1682,14 +1681,14 @@ window.addEventListener("message", function(ev){
   }
 });
 
-// 处理“显示位置”：把指定地点填入搜索框并定位放大（输入+确认）
+
 let pendingNavigate = null;
 function handleNavigateTo(name, retry){
   if(!data || !readyImg || !mapW){
-    // 地图尚未就绪，先存起来，等就绪后自动处理
+    
     pendingNavigate = name;
     if(!retry){
-      // 注册一个轮询，等就绪后处理
+      
       let tries = 0;
       const tm = setInterval(()=>{
         tries++;
@@ -1712,17 +1711,17 @@ function handleNavigateTo(name, retry){
 
 function doNavigateTo(name){
   if(!data || !readyImg || !mapW || !name) return;
-  // 填入搜索框
+  
   const li = $("loc-input"); if(li) li.value = name;
-  // 找地点：先精确，再包含，再别名
+  
   let p = data.places.find(x=>x.name===name)
        || data.places.find(x=>name.includes(x.name) || x.name.includes(name))
        || (function(){ const an=aliasToName(name); return data.places.find(x=>x.name===an); })();
   if(!p){ toast('未找到该地点：'+name); return; }
-  // 模拟搜索聚焦：隐藏底部导航栏
+  
   const bb=$("bottombar"); if(bb){ bb.style.transition='none'; bb.classList.add("dock-out"); }
   const box=$("loc-suggest"); if(box) box.classList.remove("show");
-  // 定位放大（核心：就是这一步）
+  
   gotoPlace(p);
   toast('已定位到：'+p.name);
 }
@@ -1730,7 +1729,7 @@ function doNavigateTo(name){
 
 $("routeBtn").onclick=calculate;
 $("loc-btn2").onclick=()=>{
-  // 每次点击都重新定位：保持黄(loc-wait)，重新 startGPS
+  
   startGPS();
 };
 
@@ -1769,36 +1768,36 @@ function toast(msg){
 
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 
-// zoom control +/-
-let __zoomAnimId=0; // 当前缩放动画的 rAF id，用于打断旧动画
+
+let __zoomAnimId=0; 
 function zoomByButton(f){
   const v=$("viewport");
   const cx=v.clientWidth/2, cy=v.clientHeight/2;
-  // 打断上一个未完成的动画：从当前 scale 出发，立即开始新动画
+  
   if(__zoomAnimId) cancelAnimationFrame(__zoomAnimId);
   const startScale=scale, startTx=tx, startTy=ty;
   const targetScale=Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale*f));
   const el=$("transform"); el.classList.remove("animate"); clearTimeout(el._animTm);
-  // 帧计数 + 线性插值：卡顿时变慢但完整播完；被打断时从当前进度线性移到新目标，不突兀
+  
   const totalFrames=15, frameStep=1/totalFrames;
   let frame=0;
   function step(){
     frame++;
     const p=Math.min(1, frame*frameStep);
-    const s=startScale+(targetScale-startScale)*p; // 线性：不缓出
+    const s=startScale+(targetScale-startScale)*p; 
     const k=s/startScale;
     tx=cx-k*(cx-startTx); ty=cy-k*(cy-startTy);
     scale=s;
     applyTransform();
     if(frame<totalFrames) __zoomAnimId=requestAnimationFrame(step);
-    else __zoomAnimId=0; // 动画结束
+    else __zoomAnimId=0; 
   }
   __zoomAnimId=requestAnimationFrame(step);
 }
 $("zoom-in").onclick=()=>zoomByButton(1.7);
 $("zoom-out").onclick=()=>zoomByButton(1/1.7);
 
-// reposition disclaimer: desktop -> body (fixed bottom-right), mobile -> inside form
+
 const _dq = window.matchMedia("(min-width:768px)");
 function reposeDisclaimer(){
   const d = document.querySelector(".disclaimer");
@@ -1816,10 +1815,10 @@ function reposeDisclaimer(){
 if(_dq.addEventListener){ _dq.addEventListener("change", reposeDisclaimer); }
 reposeDisclaimer();
 
-// compass click -> rotate back to north (rot = 0), keep scale/position
-let __rotAnimId=0; // 回正动画 rAF id，连点时取消旧动画避免叠加
+
+let __rotAnimId=0; 
 function resetRotation(){
-  // 打断上一个未完成的回正动画：从当前 rot 出发，立即开始新动画
+  
   if(__rotAnimId) cancelAnimationFrame(__rotAnimId);
   const v=$("viewport");
   const sx=v.clientWidth/2, sy=v.clientHeight/2;
@@ -1827,13 +1826,13 @@ function resetRotation(){
   const cx=mapCx(), cy=mapCy();
   const startRot=rot;
   const el=$("transform"); el.classList.remove("animate"); clearTimeout(el._animTm);
-  // 帧计数 + 线性插值：卡顿时变慢但完整播完；被打断时从当前进度线性移到新目标
+  
   const totalFrames=15, frameStep=1/totalFrames;
   let frame=0;
   function step(){
     frame++;
     const p=Math.min(1, frame*frameStep);
-    rot=startRot*(1-p); // 线性：不缓出
+    rot=startRot*(1-p); 
     const rad=rot*Math.PI/180;
     const cos=Math.cos(rad), sin=Math.sin(rad);
     const px=m.x-cx, py=m.y-cy;
@@ -1842,13 +1841,13 @@ function resetRotation(){
     tx=sx-rxr; ty=sy-ryr;
     applyTransform();
     if(frame<totalFrames) __rotAnimId=requestAnimationFrame(step);
-    else __rotAnimId=0; // 动画结束
+    else __rotAnimId=0; 
   }
   __rotAnimId=requestAnimationFrame(step);
 }
 $("compass").addEventListener("click", resetRotation);
 
-// ===== 免责声明弹窗：每次打开自动弹出，手动确认关闭 =====
+
 function openDisclaimer(){
   const mask=document.getElementById("disclaimer-mask");
   if(!mask) return;
@@ -1859,7 +1858,7 @@ function closeDisclaimer(){
   const mask=document.getElementById("disclaimer-mask");
   if(!mask || mask.style.display==="none") return;
   mask.classList.add("dl-closing");
-  // 淡出动画结束后再隐藏
+  
   setTimeout(()=>{ mask.style.display="none"; mask.classList.remove("dl-closing"); }, 280);
 }
 function initDisclaimer(){
@@ -1867,10 +1866,10 @@ function initDisclaimer(){
   if(link) link.addEventListener("click", openDisclaimer);
   const btn=document.getElementById("dl-confirm");
   if(btn) btn.addEventListener("click", closeDisclaimer);
-  // 点击遮罩空白处（非弹窗卡片本身）即关闭，与点击确认按钮同带淡出动画
+  
   const dmask=document.getElementById("disclaimer-mask");
   if(dmask) dmask.addEventListener("click", e=>{ if(e.target===dmask) closeDisclaimer(); });
-  // 每次加载页面自动弹出
+  
   openDisclaimer();
 }
 if(document.readyState==="loading"){
@@ -1888,8 +1887,8 @@ if(document.readyState==="loading"){
       <h2 id="dl-title">声明</h2>
     </div>
     <div class="dl-body" id="dl-body">
-      <p>本网站为<em>非官方个人项目</em>，不代表学校或任何官方机构立场，所有内容仅供学习参考。</p>
-      <p>由于个人制作，地图、路线及地点信息可能存在滞后或偏差，仅供参考，请勿当真，请以建筑实际布局位置为准。</p>
+      <p>本网站为<em>非官方个人项目，不代表学校或任何官方机构立场</em>，所有内容仅供学习参考。</p>
+      <p>由于个人制作，地图、路线及地点信息可能存在滞后或偏差，仅供参考，切勿当真，<em>请以现实中建筑实际布局位置为准</em>。</p>
       <p class="dl-contact">如涉及版权或其他权益问题，请及时联系以删除内容。</p>
     </div>
     <div class="dl-foot">
