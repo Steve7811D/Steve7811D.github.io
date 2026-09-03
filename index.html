@@ -1308,7 +1308,7 @@ function pathPrefix(a,b){ if(a.length<b.length)return false; for(let i=0;i<b.len
 
 
 function calculate(){
-  if(!data||!readyImg)return toast("正在加载地图，请稍候…");
+  if(!data||!readyImg)return toast("正在加载地图，请稍候或刷新页面");
   sp = resolvePlace($("start").value);
   ep=resolvePlace($("end").value);
   vp=resolvePlace($("via").value);   
