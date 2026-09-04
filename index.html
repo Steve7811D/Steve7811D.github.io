@@ -547,6 +547,7 @@ function calculateFromGPS(auto=false){
   if(!$("end").value.trim()){ showGpsStatus("请先选择终点",2500); return; }
   setStartToNearestPlace();
   gpsNavigating=true;
+  preserveViewOnRecalc=true;
   calculate();
 }
 
@@ -557,6 +558,7 @@ function calculateFromGPS(auto=false){
 let scale=1, tx=0, ty=0;
 let rot=0;
 let baseScale=1;
+let preserveViewOnRecalc=false;
 const MIN_SCALE=0.1, MAX_SCALE=8;
 
 
@@ -1426,7 +1428,8 @@ function drawRoute(path,sn,en,vn){
   
   bringLabelsToTop();
   renderGpsMarker();
-  focusOnRoute(clean);
+  if(preserveViewOnRecalc){ preserveViewOnRecalc=false; }
+  else { focusOnRoute(clean); }
 }
 
 
