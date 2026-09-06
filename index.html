@@ -4,6 +4,7 @@
 <link rel="icon" type="image/png" sizes="256x256" href="favicon.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cloud.umami.is; frame-ancestors 'self'; base-uri 'none'; object-src 'none'">
 <title>导航</title>
 <style>
 :root{
@@ -235,7 +236,7 @@ input,textarea{-webkit-user-select:text;user-select:text}
       <input id="via" type="text" placeholder="途经点（可选）· 搜索地点" autocomplete="off">
       <div class="suggest" id="sg-via"></div>
     </div>
-    <div class="disclaimer"><a class="dl-link" id="disclaimer-link" href="javascript:void(0)">声明</a> · <a href="二维码.jpg" class="dl-link" style="pointer-events:auto">问题反馈</a></div>
+    <div class="disclaimer"><button type="button" class="dl-link" id="disclaimer-link" style="border:none;background:none;padding:0;font:inherit;text-decoration:underline;cursor:pointer;color:inherit">声明</button> · <a href="二维码.jpg" class="dl-link" style="pointer-events:auto">问题反馈</a></div>
     <div class="btn-row">
       <button id="routeBtn" class="btn primary">开始导航</button>
       <button id="clearBtn" class="btn ghost">清除</button>
@@ -1680,6 +1681,10 @@ function renderScalebar(){
 
 
 window.addEventListener("message", function(ev){
+  // 安全：仅接受同源消息，拒绝任意第三方/iframe 页面控制导航
+  try{
+    if(ev.origin !== window.location.origin && ev.origin !== "null") return;
+  }catch(e){ return; }
   var d=ev.data;
   if(d && d.type==="NAVIGATE_TO" && typeof d.name==="string"){
     handleNavigateTo(d.name);
@@ -1901,6 +1906,8 @@ function trackConsent(){
     const s=document.createElement("script");
     s.defer=true;
     s.src="https://cloud.umami.is/script.js";
+    // SRI：校验脚本完整性，防止 CDN 被劫持后注入恶意代码（hash 需与 cloud.umami.is 当前版本一致时才启用）
+    // s.integrity="sha512-..."; s.crossOrigin="anonymous";
     s.setAttribute("data-website-id","04264cc9-21e8-4b19-8d24-83f8e22cc384");
     s.onload=()=>{ try{ if(window.umami && typeof window.umami.track==="function") window.umami.track(); }catch(e){} };
     document.head.appendChild(s);
