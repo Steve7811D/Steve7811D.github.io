@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
+<script defer src="https://cloud.umami.is/script.js" data-website-id="04264cc9-21e8-4b19-8d24-83f8e22cc384"></script>
 <link rel="icon" type="image/png" sizes="256x256" href="favicon.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
@@ -1904,7 +1905,7 @@ function trackConsent(){
   _umamiTracked=true;
   try{
     const s=document.createElement("script");
-    s.defer=true;
+    s.async=true;
     s.src="https://cloud.umami.is/script.js";
     // SRI：校验脚本完整性，防止 CDN 被劫持后注入恶意代码（hash 需与 cloud.umami.is 当前版本一致时才启用）
     // s.integrity="sha512-..."; s.crossOrigin="anonymous";
