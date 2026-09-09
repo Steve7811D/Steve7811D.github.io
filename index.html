@@ -1898,27 +1898,11 @@ function declineDisclaimer(){
   // 隐藏定位按钮（含其容器）
   const fl=$("fuse-locate"); if(fl) fl.style.display="none";
 }
-let _umamiTracked=false;
-function trackConsent(){
-  // 只有用户点击“我已了解”（同意）后才动态加载 umami 并上报；拒绝则完全不加载、零上报
-  if(_umamiTracked) return;
-  _umamiTracked=true;
-  try{
-    const s=document.createElement("script");
-    s.async=true;
-    s.src="https://cloud.umami.is/script.js";
-    // SRI：校验脚本完整性，防止 CDN 被劫持后注入恶意代码（hash 需与 cloud.umami.is 当前版本一致时才启用）
-    // s.integrity="sha512-..."; s.crossOrigin="anonymous";
-    s.setAttribute("data-website-id","04264cc9-21e8-4b19-8d24-83f8e22cc384");
-    s.onload=()=>{ try{ if(window.umami && typeof window.umami.track==="function") window.umami.track(); }catch(e){} };
-    document.head.appendChild(s);
-  }catch(e){}
-}
 function initDisclaimer(){
   const link=document.getElementById("disclaimer-link");
   if(link) link.addEventListener("click", ()=>openDisclaimer(true));
   const btn=document.getElementById("dl-confirm");
-  if(btn) btn.addEventListener("click", ()=>{ closeDisclaimer(); trackConsent(); });
+  if(btn) btn.addEventListener("click", ()=>{ closeDisclaimer(); });
   const dbtn=document.getElementById("dl-decline");
   if(dbtn) dbtn.addEventListener("click", declineDisclaimer);
   // 只读模式下点击遮罩空白处即可关闭（仅当无按钮时）
